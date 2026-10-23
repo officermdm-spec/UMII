@@ -2,6 +2,9 @@
 Django settings for the E-commerce Management System.
 Values that change between environments are loaded from `.env`.
 """
+import cloudinary
+import cloudinary.uploader
+import cloudinary.utils
 import os
 from decimal import Decimal
 from pathlib import Path
@@ -59,6 +62,12 @@ INSTALLED_APPS = [
     "apps.vendor_payments.apps.VendorPaymentsConfig",
 ]
 
+CLOUDINARY_STORAGE = {
+    'CLOUD_NAME': 'igprlpev',
+    'API_KEY': '744214298555878',
+    'API_SECRET': '4nIk6LoAn-Trmh2XfiglOYXmlXE',
+}
+DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
