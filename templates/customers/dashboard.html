@@ -1,0 +1,28 @@
+{% extends "customers/base.html" %}
+{% block store_title %}Dashboard{% endblock %}
+{% block account_content %}
+<p class="text-xs font-semibold uppercase tracking-[0.18em] text-brand-600">Your account</p>
+<h1 class="mt-1 text-3xl font-bold tracking-tight">Hello, {{ user.first_name|default:user.username }}</h1>
+<p class="mt-2 text-sm text-slate-500">Here's a quick look at your shopping activity.</p>
+<div class="mt-6 grid gap-4 sm:grid-cols-3">
+  <div class="surface-card rounded-2xl p-5"><span class="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-100 text-sky-700">□</span><p class="mt-4 text-sm text-slate-500">Orders</p><p class="text-3xl font-bold text-slate-900">{{ orders|length }}</p></div>
+  <div class="surface-card rounded-2xl p-5"><span class="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-100 text-violet-700">↩</span><p class="mt-4 text-sm text-slate-500">Returns</p><p class="text-3xl font-bold text-slate-900">{{ returns|length }}</p></div>
+  <div class="surface-card rounded-2xl p-5"><span class="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-100 text-indigo-700">★</span><p class="mt-4 text-sm text-slate-500">Feedback</p><p class="text-3xl font-bold text-slate-900">{{ feedback_items|length }}</p></div>
+</div>
+<section class="mt-8">
+  <h2 class="text-xl font-bold">Recent orders</h2>
+  <div class="surface-card mt-3 divide-y divide-slate-100 rounded-2xl">
+    {% for order in orders %}
+      <a href="{% url 'orders_customer:detail' order.pk %}" class="flex items-center justify-between gap-3 px-5 py-4 text-sm transition hover:bg-sky-50/50">
+        <span class="font-medium">{{ order.order_number }}</span>
+        <span class="flex flex-wrap items-center gap-2">
+          {% include "components/status_badge.html" with status=order.status %}
+          {% include "components/status_badge.html" with status=order.payment_status %}
+        </span>
+      </a>
+    {% empty %}
+      <p class="p-4 text-sm text-slate-500">No orders yet.</p>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

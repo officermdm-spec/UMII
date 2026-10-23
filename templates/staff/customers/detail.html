@@ -1,0 +1,28 @@
+{% extends "staff/base.html" %}
+{% block staff_title %}{{ customer }}{% endblock %}
+{% block content %}
+<div class="flex flex-wrap items-center justify-between gap-3">
+  <div>
+    <h1 class="text-2xl font-semibold">{{ customer.get_full_name|default:customer.username }}</h1>
+    <p class="text-sm text-slate-500">{{ customer.email }} · {{ customer.phone }}</p>
+  </div>
+  <div class="no-print flex flex-wrap gap-2">
+    {% include "components/print_button.html" %}
+    {% if staff_can_write %}
+      <a class="rounded-lg border px-3 py-2 text-sm" href="{% url 'customers_staff:update' customer.pk %}">Edit</a>
+      <a class="rounded-lg border border-red-200 px-3 py-2 text-sm text-red-600" href="{% url 'customers_staff:delete' customer.pk %}">Delete</a>
+    {% endif %}
+  </div>
+</div>
+<section class="mt-6 rounded-2xl border bg-white p-4">
+  <h2 class="font-semibold">Orders</h2>
+  <ul class="mt-2 space-y-1 text-sm">
+    {% for order in orders %}<li><a class="text-brand-700" href="{% url 'orders_staff:detail' order.pk %}">{{ order.order_number }}</a> · {{ order.get_status_display }}</li>
+    {% empty %}<li class="text-slate-500">No orders.</li>{% endfor %}
+  </ul>
+</section>
+<section class="mt-4 rounded-2xl border bg-white p-4 text-sm">
+  <h2 class="font-semibold">Addresses</h2>
+  {% for a in addresses %}<p class="mt-2">{{ a.full_name }} · {{ a.address }}, {{ a.city }}</p>{% empty %}<p>None</p>{% endfor %}
+</section>
+{% endblock %}

@@ -1,0 +1,10 @@
+{% extends "store/base.html" %}
+{% block store_title %}Account{% endblock %}
+{% block content %}
+<div class="grid gap-6 lg:grid-cols-[230px_1fr]">
+  {% include "components/customer_sidebar.html" %}
+  <div class="min-w-0">
+    {% block account_content %}{% endblock %}
+  </div>
+</div>
+{% endblock %}

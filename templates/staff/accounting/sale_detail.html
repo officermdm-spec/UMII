@@ -1,0 +1,36 @@
+{% extends "staff/base.html" %}
+{% block staff_title %}{{ order.order_number }}{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-semibold">{{ order.order_number }}</h1>
+{% include "components/accounting_nav.html" %}
+<div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+  <div class="rounded-2xl border bg-white p-4"><p class="text-xs text-slate-500">Customer</p><p class="font-medium">{{ order.billing_full_name }}</p></div>
+  <div class="rounded-2xl border bg-white p-4"><p class="text-xs text-slate-500">Warehouse</p><p class="font-medium">{{ order.fulfillment_warehouse|default:"—" }}</p></div>
+  <div class="rounded-2xl border bg-white p-4"><p class="text-xs text-slate-500">Gross sales</p><p class="font-medium">{{ gross }}</p></div>
+  <div class="rounded-2xl border bg-white p-4"><p class="text-xs text-slate-500">Catalog discount</p><p class="font-medium">{{ order.catalog_discount }}</p></div>
+  <div class="rounded-2xl border bg-white p-4"><p class="text-xs text-slate-500">Offer discount</p><p class="font-medium">{{ order.offer_discount }}</p></div>
+  <div class="rounded-2xl border bg-white p-4"><p class="text-xs text-slate-500">Coupon</p><p class="font-medium">{{ order.discount }}</p></div>
+  <div class="rounded-2xl border bg-white p-4"><p class="text-xs text-slate-500">Net sales</p><p class="font-medium">{{ net_sales }}</p></div>
+  <div class="rounded-2xl border bg-white p-4"><p class="text-xs text-slate-500">COGS</p><p class="font-medium">{{ order.cogs_total }}</p></div>
+  <div class="rounded-2xl border bg-white p-4"><p class="text-xs text-slate-500">Gross profit</p><p class="font-medium">{{ gross_profit }}</p></div>
+  <div class="rounded-2xl border bg-white p-4"><p class="text-xs text-slate-500">Paid</p><p class="font-medium">{{ paid }}</p></div>
+  <div class="rounded-2xl border bg-white p-4"><p class="text-xs text-slate-500">Outstanding</p><p class="font-medium">{{ outstanding }}</p></div>
+</div>
+<div class="mt-4 overflow-x-auto rounded-2xl border bg-white">
+  <table class="min-w-full text-sm">
+    <thead class="bg-slate-50 text-left"><tr><th class="px-4 py-3">Product</th><th class="px-4 py-3">Qty</th><th class="px-4 py-3">List</th><th class="px-4 py-3">Discounts</th><th class="px-4 py-3">Net</th><th class="px-4 py-3">COGS</th></tr></thead>
+    <tbody>
+      {% for item in order.items.all %}
+        <tr class="border-t">
+          <td class="px-4 py-3">{{ item.product_name }}</td>
+          <td class="px-4 py-3">{{ item.quantity }}</td>
+          <td class="px-4 py-3">{{ item.unit_price }}</td>
+          <td class="px-4 py-3">{{ item.discount }}</td>
+          <td class="px-4 py-3">{{ item.total }}</td>
+          <td class="px-4 py-3">{{ item.cogs_amount }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

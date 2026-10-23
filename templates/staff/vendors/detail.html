@@ -1,0 +1,21 @@
+{% extends "staff/base.html" %}
+{% block staff_title %}{{ vendor }}{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-semibold">{{ vendor }}</h1>
+<p class="text-sm text-slate-500">{{ vendor.contact_person }} · {{ vendor.phone }} · {{ vendor.email }}</p>
+<p class="mt-2 text-sm">{{ vendor.address }} {{ vendor.city }} · NTN {{ vendor.tax_ntn|default:"-" }}</p>
+<section class="mt-6 rounded-2xl border bg-white p-4">
+  <h2 class="font-semibold">GRNs</h2>
+  <ul class="mt-2 space-y-1 text-sm">
+    {% for grn in grns %}<li><a class="text-brand-700" href="{% url 'purchases:detail' grn.pk %}">{{ grn.grn_number }}</a> · {{ grn.get_status_display }} · {{ grn.grn_date }}</li>
+    {% empty %}<li class="text-slate-500">No GRNs.</li>{% endfor %}
+  </ul>
+</section>
+<section class="mt-4 rounded-2xl border bg-white p-4">
+  <h2 class="font-semibold">Purchase history</h2>
+  <ul class="mt-2 space-y-1 text-sm">
+    {% for row in purchase_history %}<li>{{ row.purchased_at|date:"d M Y" }} · {{ row.product }} × {{ row.quantity }} @ {{ row.purchase_rate }}</li>
+    {% empty %}<li class="text-slate-500">No purchases yet.</li>{% endfor %}
+  </ul>
+</section>
+{% endblock %}

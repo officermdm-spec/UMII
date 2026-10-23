@@ -1,0 +1,54 @@
+{% extends "staff/base.html" %}
+{% block staff_title %}Coupons{% endblock %}
+{% block content %}
+{% include "components/staff_header.html" with heading="Promotions" create_url="/staff/promotions/add/" %}
+{% include "components/promotions_nav.html" %}
+<p class="mt-2 text-sm text-slate-500">Customers enter a code at checkout. Discount is always calculated on the server.</p>
+<div class="mt-4 overflow-x-auto rounded-2xl border bg-white">
+  <table class="min-w-full text-sm">
+    <thead class="bg-slate-50 text-left">
+      <tr>
+        <th class="px-4 py-3">Offer name</th>
+        <th class="px-4 py-3">Coupon code</th>
+        <th class="px-4 py-3">Discount</th>
+        <th class="px-4 py-3">Products</th>
+        <th class="px-4 py-3">Start</th>
+        <th class="px-4 py-3">End</th>
+        <th class="px-4 py-3">Status</th>
+        <th class="px-4 py-3">Usage</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for promo in promotions %}
+        <tr class="border-t">
+          <td class="px-4 py-3 font-medium">{{ promo.name }}</td>
+          <td class="px-4 py-3 font-mono">{{ promo.code|default:"—" }}</td>
+          <td class="px-4 py-3">{{ promo.discount_label }}</td>
+          <td class="px-4 py-3 text-slate-600">
+            {% with picked=promo.products.all %}
+              {% if picked %}
+                {{ picked|join:", " }}
+              {% else %}
+                All items
+              {% endif %}
+            {% endwith %}
+          </td>
+          <td class="px-4 py-3 whitespace-nowrap">{{ promo.start_date|date:"d M Y H:i" }}</td>
+          <td class="px-4 py-3 whitespace-nowrap">{{ promo.end_date|date:"d M Y H:i" }}</td>
+          <td class="px-4 py-3">{% include "components/status_badge.html" with status=promo.lifecycle %}</td>
+          <td class="px-4 py-3">{{ promo.used_count }}{% if promo.usage_limit %}/{{ promo.usage_limit }}{% else %} / ∞{% endif %}</td>
+          <td class="px-4 py-3">
+            {% url 'promotions:update' promo.pk as promo_edit %}
+            {% url 'promotions:delete' promo.pk as promo_delete %}
+            {% include "components/table_actions.html" with view_url=promo_edit edit_url=promo_edit delete_url=promo_delete %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td class="px-4 py-6 text-slate-500" colspan="9">No coupons yet. Add one to show it on the home page.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% include "components/pagination.html" %}
+{% endblock %}

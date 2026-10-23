@@ -1,0 +1,61 @@
+{% extends "staff/base.html" %}
+{% block staff_title %}Payment {{ payment.order.order_number }}{% endblock %}
+{% block content %}
+<p class="text-sm"><a class="text-brand-700" href="{% url 'payments:list' %}">← Payments</a></p>
+<div class="mt-3 flex flex-wrap items-center justify-between gap-3">
+  <h1 class="text-2xl font-semibold">Review payment</h1>
+  <div class="flex flex-wrap items-center gap-2">
+    {% include "components/status_badge.html" with status=payment.status %}
+    {% include "components/status_badge.html" with status=payment.order.payment_status %}
+  </div>
+</div>
+<p class="mt-1 text-sm text-slate-500">
+  Order <a class="text-brand-700" href="{% url 'orders_staff:detail' payment.order.pk %}">{{ payment.order.order_number }}</a>
+  · {{ payment.method }} · {{ payment.amount }} · {{ payment.order.customer }}
+</p>
+<div class="mt-6 grid gap-6 lg:grid-cols-2">
+  <section class="rounded-2xl border bg-white p-5">
+    <h2 class="font-semibold">Payment screenshot</h2>
+    {% if payment.proof_image %}
+      <a href="{{ payment.proof_image.url }}" target="_blank" rel="noopener">
+        <img src="{{ payment.proof_image.url }}" alt="Payment screenshot" class="mt-4 w-full rounded-xl border object-contain">
+      </a>
+    {% else %}
+      <p class="mt-3 text-sm text-slate-500">
+        {% if payment.method.code == 'cod' %}COD — no screenshot required.{% else %}No screenshot uploaded.{% endif %}
+      </p>
+    {% endif %}
+  </section>
+  <section class="rounded-2xl border bg-white p-5 text-sm space-y-4">
+    <div>
+      <h2 class="font-semibold">Details</h2>
+      <p class="mt-3">Method: {{ payment.method }}</p>
+      <p>Amount: {{ payment.amount }}</p>
+      <p>Payment status: {{ payment.get_status_display }}</p>
+      <p>Order payment: {{ payment.order.get_payment_status_display }}</p>
+      <p>Txn: {{ payment.transaction_id|default:"—" }}</p>
+    </div>
+    <form method="post" action="{% url 'payments:status' payment.pk %}" class="space-y-3 border-t pt-4">
+      {% csrf_token %}
+      <h3 class="font-semibold">Update payment status</h3>
+      {{ status_form.status }}
+      {{ status_form.transaction_id }}
+      <button class="rounded-lg bg-brand-600 px-4 py-2 font-medium text-white">Save status</button>
+    </form>
+    {% if payment.status != 'paid' and payment.status != 'refunded' %}
+      <div class="flex flex-wrap gap-3 border-t pt-4">
+        <form method="post" action="{% url 'payments:mark_paid' payment.pk %}">
+          {% csrf_token %}
+          <button class="rounded-lg bg-emerald-600 px-4 py-2 font-medium text-white">{% if payment.method.code == 'cod' %}Mark COD collected{% else %}Approve screenshot{% endif %}</button>
+        </form>
+        {% if payment.method.code != 'cod' %}
+          <form method="post" action="{% url 'payments:mark_failed' payment.pk %}">
+            {% csrf_token %}
+            <button class="rounded-lg border px-4 py-2 font-medium text-red-600">Reject</button>
+          </form>
+        {% endif %}
+      </div>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

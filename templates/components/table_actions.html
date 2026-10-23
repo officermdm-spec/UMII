@@ -1,0 +1,11 @@
+<div class="table-actions flex flex-wrap justify-end gap-2">
+  {% if view_url %}
+    <a class="rounded-lg border px-3 py-1.5 text-xs font-medium text-brand-700" href="{{ view_url }}">View</a>
+  {% endif %}
+  {% if edit_url and staff_can_write %}
+    <a class="rounded-lg border px-3 py-1.5 text-xs font-medium text-slate-700" href="{{ edit_url }}">Edit</a>
+  {% endif %}
+  {% if delete_url and staff_can_write %}
+    <a class="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600" href="{{ delete_url }}">Delete</a>
+  {% endif %}
+</div>

@@ -1,0 +1,28 @@
+{% extends "staff/base.html" %}
+{% block staff_title %}Customers{% endblock %}
+{% block content %}
+{% include "components/staff_header.html" with heading="Customers" show_search=True %}
+<div class="mt-4 overflow-x-auto rounded-2xl border bg-white">
+  <table class="min-w-full text-sm">
+    <thead class="bg-slate-50 text-left"><tr><th class="px-4 py-3">Name</th><th class="px-4 py-3">Email</th><th class="px-4 py-3">Phone</th><th class="px-4 py-3 text-right">Actions</th></tr></thead>
+    <tbody>
+      {% for c in customers %}
+        <tr class="border-t">
+          <td class="px-4 py-3"><a class="text-brand-700" href="{% url 'customers_staff:detail' c.pk %}">{{ c.get_full_name|default:c.username }}</a></td>
+          <td class="px-4 py-3">{{ c.email }}</td>
+          <td class="px-4 py-3">{{ c.phone }}</td>
+          <td class="px-4 py-3">
+            {% url 'customers_staff:detail' c.pk as c_view %}
+            {% url 'customers_staff:update' c.pk as c_edit %}
+            {% url 'customers_staff:delete' c.pk as c_delete %}
+            {% include "components/table_actions.html" with view_url=c_view edit_url=c_edit delete_url=c_delete %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td class="px-4 py-6 text-slate-500" colspan="4">No customers yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% include "components/pagination.html" %}
+{% endblock %}

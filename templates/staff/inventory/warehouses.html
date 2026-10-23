@@ -1,0 +1,28 @@
+{% extends "staff/base.html" %}
+{% block staff_title %}Warehouses{% endblock %}
+{% block content %}
+{% include "components/staff_header.html" with heading="Warehouses" create_url="/staff/inventory/warehouses/add/" show_search=True %}
+<div class="mt-4 overflow-x-auto rounded-2xl border bg-white">
+  <table class="min-w-full text-sm">
+    <thead class="bg-slate-50 text-left"><tr><th class="px-4 py-3">Name</th><th class="px-4 py-3">Code</th><th class="px-4 py-3">Address</th><th class="px-4 py-3">Active</th><th class="px-4 py-3 text-right">Actions</th></tr></thead>
+    <tbody>
+      {% for wh in warehouses %}
+        <tr class="border-t">
+          <td class="px-4 py-3">{{ wh.name }}</td>
+          <td class="px-4 py-3 font-mono text-xs">{{ wh.code }}</td>
+          <td class="px-4 py-3">{{ wh.address|default:"-" }}</td>
+          <td class="px-4 py-3">{{ wh.is_active }}</td>
+          <td class="px-4 py-3">
+            {% url 'inventory:warehouse_update' wh.pk as wh_edit %}
+            {% url 'inventory:warehouse_delete' wh.pk as wh_delete %}
+            {% include "components/table_actions.html" with view_url=wh_edit edit_url=wh_edit delete_url=wh_delete %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td class="px-4 py-6 text-slate-500" colspan="5">No warehouses yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% include "components/pagination.html" %}
+{% endblock %}

@@ -1,0 +1,85 @@
+{% extends "store/base.html" %}
+{% load humanize %}
+{% block store_title %}Cart{% endblock %}
+{% block content %}
+<div>
+  <p class="text-xs font-semibold uppercase tracking-[0.18em] text-brand-600">Almost there</p>
+  <h1 class="mt-1 text-3xl font-bold tracking-tight">Your shopping cart</h1>
+  <p class="mt-2 text-sm text-slate-500">Review your items before checkout.</p>
+</div>
+{% if summary.items %}
+  <div class="surface-card mt-7 overflow-x-auto rounded-3xl">
+    <table class="min-w-[720px] w-full text-sm">
+      <thead class="bg-gradient-to-r from-sky-50 to-violet-50 text-left text-xs uppercase tracking-wide text-slate-500">
+        <tr>
+          <th class="px-4 py-3">Product</th>
+          <th class="px-4 py-3">Price</th>
+          <th class="px-4 py-3">Qty</th>
+          <th class="px-4 py-3">Total</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in summary.items %}
+          <tr class="border-t">
+            <td class="px-4 py-3">
+              <div class="flex items-center gap-3">
+                <div class="h-14 w-14 overflow-hidden rounded-xl bg-slate-100">
+                  {% if row.product.cover_image %}<img src="{{ row.product.cover_image.url }}" alt="" class="h-full w-full object-cover">{% endif %}
+                </div>
+                <div><p class="font-semibold text-slate-800">{{ row.product.name }}</p><p class="text-xs text-slate-500">{{ row.product.sku }}</p></div>
+              </div>
+            </td>
+            <td class="px-4 py-3 font-medium">
+              {% if row.unit_price < row.list_price %}
+                <div class="flex flex-col gap-0.5">
+                  <span>{{ currency }} {{ row.unit_price|intcomma }}</span>
+                  <span class="text-xs text-slate-400 line-through">{{ currency }} {{ row.list_price|intcomma }}</span>
+                  {% if row.offer_badge %}<span class="text-[11px] font-semibold text-rose-600">{{ row.offer_badge }}</span>{% endif %}
+                </div>
+              {% else %}
+                {{ currency }} {{ row.list_price|intcomma }}
+              {% endif %}
+            </td>
+            <td class="px-4 py-3">
+              <form method="post" action="{% url 'orders_cart:update' row.product.pk %}" class="flex items-center gap-2">
+                {% csrf_token %}
+                <input type="number" name="quantity" min="0" value="{{ row.quantity }}" class="modern-input w-16 rounded-lg border border-sky-100 bg-slate-50 px-2 py-1.5">
+                <button class="font-medium text-brand-700">Update</button>
+              </form>
+            </td>
+            <td class="px-4 py-3 font-semibold">{{ currency }} {{ row.line_total|intcomma }}</td>
+            <td class="px-4 py-3">
+              <form method="post" action="{% url 'orders_cart:remove' row.product.pk %}">
+                {% csrf_token %}
+                <button class="text-red-600">Remove</button>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="surface-card mt-6 ml-auto max-w-sm rounded-3xl p-6 text-sm">
+    <h2 class="mb-4 text-lg font-bold">Order summary</h2>
+    <p class="flex justify-between"><span>Subtotal</span><span>{{ currency }} {{ summary.list_subtotal|default:summary.subtotal|intcomma }}</span></p>
+    {% if summary.product_discount %}
+      <p class="mt-2 flex justify-between text-violet-700"><span>Product offer</span><span>-{{ currency }} {{ summary.product_discount|intcomma }}</span></p>
+    {% endif %}
+    <p class="mt-2 flex justify-between"><span>Shipping</span><span>{{ currency }} {{ summary.shipping|intcomma }}</span></p>
+    <p class="mt-2 flex justify-between"><span>Tax</span><span>{{ currency }} {{ summary.tax|intcomma }}</span></p>
+    <div class="my-4 border-t border-dashed border-slate-200"></div>
+    <p class="flex justify-between text-base font-bold"><span>Grand total</span><span class="text-brand-700">{{ currency }} {{ summary.grand_total|intcomma }}</span></p>
+    <p class="mt-3 text-xs text-slate-500">Have a coupon? Add it on the checkout page.</p>
+    <a href="{% url 'orders_checkout:checkout' %}" class="btn-primary mt-3 flex w-full py-3 text-center font-semibold">Continue to checkout</a>
+    <a href="{% url 'store:product_list' %}" class="mt-3 block text-center text-sm font-medium text-slate-500 hover:text-brand-700">Continue shopping</a>
+  </div>
+{% else %}
+  <div class="surface-card mt-8 rounded-3xl px-6 py-16 text-center">
+    <span class="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-100 to-violet-100 text-3xl text-brand-700">♡</span>
+    <h2 class="mt-5 text-xl font-bold">Your cart is waiting</h2>
+    <p class="mt-2 text-sm text-slate-500">Discover something you love and add it here.</p>
+    <a class="btn-primary mt-6 px-5 py-3 text-sm font-semibold" href="{% url 'store:product_list' %}">Start shopping</a>
+  </div>
+{% endif %}
+{% endblock %}

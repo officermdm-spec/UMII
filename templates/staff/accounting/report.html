@@ -1,0 +1,122 @@
+{% extends "staff/base.html" %}
+{% block staff_title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="flex flex-wrap items-center justify-between gap-3">
+  <h1 class="text-2xl font-semibold">{{ title }}</h1>
+  {% include "components/print_button.html" %}
+</div>
+{% include "components/accounting_nav.html" %}
+<div class="mt-4 flex flex-wrap gap-2 text-sm">
+  <a class="rounded-full border px-3 py-1.5" href="{% url 'accounting:report' 'profit-loss' %}">Profit &amp; loss</a>
+  <a class="rounded-full border px-3 py-1.5" href="{% url 'accounting:report' 'sales' %}">Sales</a>
+  <a class="rounded-full border px-3 py-1.5" href="{% url 'accounting:report' 'cogs' %}">COGS</a>
+  <a class="rounded-full border px-3 py-1.5" href="{% url 'accounting:report' 'purchases' %}">Purchases</a>
+  <a class="rounded-full border px-3 py-1.5" href="{% url 'accounting:report' 'expenses' %}">Expenses</a>
+  <a class="rounded-full border px-3 py-1.5" href="{% url 'accounting:report' 'inventory-valuation' %}">Inventory valuation</a>
+  <a class="rounded-full border px-3 py-1.5" href="{% url 'accounting:report' 'cash' %}">Cash</a>
+  <a class="rounded-full border px-3 py-1.5" href="{% url 'accounting:report' 'bank' %}">Bank</a>
+  <a class="rounded-full border px-3 py-1.5" href="{% url 'accounting:receivables' %}">Receivables</a>
+  <a class="rounded-full border px-3 py-1.5" href="{% url 'vendor_payments:list' %}">Payables</a>
+  <a class="rounded-full border px-3 py-1.5" href="{% url 'accounting:ledger' %}">Ledger</a>
+  <a class="rounded-full border px-3 py-1.5" href="{% url 'accounting:customer_statement' %}">Customer statement</a>
+  <a class="rounded-full border px-3 py-1.5" href="{% url 'accounting:vendor_statement' %}">Vendor statement</a>
+  <a class="rounded-full border px-3 py-1.5" href="{% url 'accounting:report' 'returns-refunds' %}">Returns</a>
+  <a class="rounded-full border px-3 py-1.5" href="{% url 'accounting:report' 'tax-summary' %}">Tax summary</a>
+</div>
+{% include "components/date_filter.html" %}
+
+{% if slug == 'profit-loss' or slug == 'reports' or not slug %}
+  <div class="mt-4 max-w-xl space-y-2 rounded-2xl border bg-white p-5 text-sm">
+    <div class="flex justify-between"><span>Gross sales</span><span>{{ totals.gross_sales }}</span></div>
+    <div class="flex justify-between"><span>Product discounts</span><span>- {{ totals.product_discounts }}</span></div>
+    <div class="flex justify-between"><span>Product offer discounts</span><span>- {{ totals.offer_discounts }}</span></div>
+    <div class="flex justify-between"><span>Coupon discounts</span><span>- {{ totals.coupon_discounts }}</span></div>
+    <div class="flex justify-between"><span>Sales returns</span><span>- {{ totals.sales_returns }}</span></div>
+    <div class="flex justify-between font-semibold"><span>Net sales</span><span>{{ totals.net_sales }}</span></div>
+    <div class="flex justify-between"><span>COGS</span><span>- {{ totals.cogs }}</span></div>
+    <div class="flex justify-between font-semibold"><span>Gross profit</span><span>{{ totals.gross_profit }}</span></div>
+    <div class="flex justify-between"><span>Other income</span><span>+ {{ totals.other_income }}</span></div>
+    <div class="flex justify-between"><span>Operating expenses</span><span>- {{ totals.expenses }}</span></div>
+    <div class="flex justify-between border-t pt-2 text-base font-semibold"><span>Net profit</span><span>{{ totals.net_profit }}</span></div>
+  </div>
+{% elif slug == 'cash' %}
+  <p class="mt-4 text-lg font-semibold">Cash: {{ totals.cash }}</p>
+{% elif slug == 'bank' %}
+  <p class="mt-4 text-lg font-semibold">Bank: {{ totals.bank }}</p>
+{% elif slug == 'inventory-valuation' %}
+  <p class="mt-4 text-sm">Weighted-average stock value: <strong>{{ inventory_value }}</strong></p>
+  <p class="mt-1 text-xs text-slate-500">FIFO remaining layers: {{ fifo_inventory_value }}</p>
+  <div class="mt-4 overflow-x-auto rounded-2xl border bg-white">
+    <table class="min-w-full text-sm">
+      <thead class="bg-slate-50 text-left"><tr><th class="px-4 py-3">Product</th><th class="px-4 py-3">Warehouse</th><th class="px-4 py-3">Qty</th><th class="px-4 py-3">Avg cost</th><th class="px-4 py-3">Value</th></tr></thead>
+      <tbody>
+        {% for row in wac_rows %}
+          <tr class="border-t"><td class="px-4 py-3">{{ row.inv.product }}</td><td class="px-4 py-3">{{ row.inv.warehouse }}</td><td class="px-4 py-3">{{ row.inv.current_stock }}</td><td class="px-4 py-3">{{ row.avg }}</td><td class="px-4 py-3">{{ row.value }}</td></tr>
+        {% empty %}
+          <tr><td class="px-4 py-6 text-slate-500" colspan="5">No on-hand stock.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% elif slug == 'tax-summary' %}
+  <p class="mt-4 text-lg font-semibold">Tax collected: {{ tax_total }}</p>
+{% elif slug == 'cogs' or slug == 'sales' %}
+  <div class="mt-4 overflow-x-auto rounded-2xl border bg-white">
+    <table class="min-w-full text-sm">
+      <thead class="bg-slate-50 text-left"><tr><th class="px-4 py-3">Order</th><th class="px-4 py-3">Net</th><th class="px-4 py-3">COGS</th></tr></thead>
+      <tbody>
+        {% for order in orders %}
+          <tr class="border-t"><td class="px-4 py-3">{{ order.order_number }}</td><td class="px-4 py-3">{{ order.grand_total }}</td><td class="px-4 py-3">{{ order.cogs_total }}</td></tr>
+        {% empty %}
+          <tr><td class="px-4 py-6 text-slate-500" colspan="3">No rows.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% elif slug == 'purchases' %}
+  <div class="mt-4 overflow-x-auto rounded-2xl border bg-white">
+    <table class="min-w-full text-sm">
+      <thead class="bg-slate-50 text-left"><tr><th class="px-4 py-3">GRN</th><th class="px-4 py-3">Vendor</th><th class="px-4 py-3">Total</th></tr></thead>
+      <tbody>
+        {% for grn in grns %}
+          <tr class="border-t"><td class="px-4 py-3">{{ grn.grn_number }}</td><td class="px-4 py-3">{{ grn.vendor }}</td><td class="px-4 py-3">{{ grn.grand_total }}</td></tr>
+        {% empty %}
+          <tr><td class="px-4 py-6 text-slate-500" colspan="3">No purchases.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% elif slug == 'expenses' %}
+  <div class="mt-4 overflow-x-auto rounded-2xl border bg-white">
+    <table class="min-w-full text-sm">
+      <thead class="bg-slate-50 text-left"><tr><th class="px-4 py-3">Title</th><th class="px-4 py-3">Amount</th></tr></thead>
+      <tbody>
+        {% for row in expenses %}
+          <tr class="border-t"><td class="px-4 py-3">{{ row.title }}</td><td class="px-4 py-3">{{ row.amount }}</td></tr>
+        {% empty %}
+          <tr><td class="px-4 py-6 text-slate-500" colspan="2">No expenses.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% elif slug == 'returns-refunds' %}
+  <p class="mt-4 text-sm">Posted sales returns: <strong>{{ returns_total }}</strong></p>
+  <div class="mt-4 overflow-x-auto rounded-2xl border bg-white">
+    <table class="min-w-full text-sm">
+      <thead class="bg-slate-50 text-left"><tr><th class="px-4 py-3">Return</th><th class="px-4 py-3">Order</th><th class="px-4 py-3">Status</th><th class="px-4 py-3">Accounting</th></tr></thead>
+      <tbody>
+        {% for item in returns %}
+          <tr class="border-t">
+            <td class="px-4 py-3">{{ item.row.return_number }}</td>
+            <td class="px-4 py-3">{{ item.row.order }}</td>
+            <td class="px-4 py-3">{{ item.row.status }}</td>
+            <td class="px-4 py-3">{% if item.posted %}Posted{% else %}Not posted{% endif %}</td>
+          </tr>
+        {% empty %}
+          <tr><td class="px-4 py-6 text-slate-500" colspan="4">No returns.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,25 @@
+{% extends "staff/base.html" %}
+{% block staff_title %}Payables{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-semibold">Vendor payables</h1>
+{% include "components/accounting_nav.html" %}
+<p class="mt-3 text-sm"><a class="text-brand-700" href="{% url 'accounting:vendor_statement' %}">Vendor statement</a> · Total outstanding {{ total }}</p>
+<div class="mt-4 overflow-x-auto rounded-2xl border bg-white">
+  <table class="min-w-full text-sm">
+    <thead class="bg-slate-50 text-left"><tr><th class="px-4 py-3">Vendor</th><th class="px-4 py-3">Purchases</th><th class="px-4 py-3">Paid</th><th class="px-4 py-3">Outstanding</th></tr></thead>
+    <tbody>
+      {% for row in rows %}
+        <tr class="border-t"><td class="px-4 py-3">{{ row.vendor }}</td><td class="px-4 py-3">{{ row.purchases }}</td><td class="px-4 py-3">{{ row.paid }}</td><td class="px-4 py-3">{{ row.outstanding }}</td></tr>
+      {% empty %}
+        <tr><td class="px-4 py-6 text-slate-500" colspan="4">No vendors yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+<form method="post" class="mt-6 max-w-xl space-y-3 rounded-2xl border bg-white p-5">
+  {% csrf_token %}
+  <h2 class="font-semibold">Record vendor payment</h2>
+  {% for field in form %}<div><label class="text-sm font-medium">{{ field.label }}</label>{{ field }}{{ field.errors }}</div>{% endfor %}
+  <button class="rounded-lg bg-brand-600 px-4 py-2 text-white">Post payment</button>
+</form>
+{% endblock %}

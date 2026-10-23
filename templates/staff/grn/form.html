@@ -1,0 +1,212 @@
+{% extends "staff/base.html" %}
+{% block staff_title %}{% if form.instance.pk %}Edit {{ form.instance.grn_number }}{% else %}New GRN{% endif %}{% endblock %}
+{% block content %}
+<div class="flex flex-wrap items-center justify-between gap-3">
+  <div>
+    <h1 class="text-2xl font-semibold">{% if form.instance.pk %}Edit GRN{% else %}Goods Received Note{% endif %}</h1>
+    <p class="text-sm text-slate-500">Number and date are generated automatically. Status starts as pending.</p>
+  </div>
+  <a class="rounded-lg border px-3 py-2 text-sm" href="{% url 'purchases:list' %}">Back to list</a>
+</div>
+
+<form method="post" id="grn-form" class="mt-4 space-y-4">
+  {% csrf_token %}
+  {{ form.non_field_errors }}
+  {{ product_rates|json_script:"grn-product-rates" }}
+
+  <section class="rounded-2xl border bg-white p-5">
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div class="rounded-xl border border-sky-100 bg-sky-50/60 px-4 py-3">
+        <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">GRN number</p>
+        <p class="mt-1 text-sm font-semibold text-slate-900">{{ form.instance.grn_number|default:"Auto" }}</p>
+      </div>
+      <div class="rounded-xl border border-sky-100 bg-sky-50/60 px-4 py-3">
+        <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">GRN date</p>
+        <p class="mt-1 text-sm font-semibold text-slate-900">{% if form.instance.pk %}{{ form.instance.grn_date }}{% else %}{{ today }}{% endif %}</p>
+      </div>
+      <div class="rounded-xl border border-amber-100 bg-amber-50/70 px-4 py-3">
+        <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Status</p>
+        <p class="mt-1">{% include "components/status_badge.html" with status=form.instance.status|default:"pending" %}</p>
+      </div>
+      <div>
+        <label class="text-sm font-medium" for="{{ form.vendor.id_for_label }}">Vendor</label>
+        {{ form.vendor }}{{ form.vendor.errors }}
+      </div>
+      <div>
+        <label class="text-sm font-medium" for="{{ form.invoice_number.id_for_label }}">Invoice number <span class="font-normal text-slate-400">(optional)</span></label>
+        {{ form.invoice_number }}{{ form.invoice_number.errors }}
+      </div>
+      <div>
+        <label class="text-sm font-medium" for="{{ form.warehouse.id_for_label }}">Warehouse</label>
+        {{ form.warehouse }}{{ form.warehouse.errors }}
+      </div>
+    </div>
+  </section>
+
+  <section class="rounded-2xl border bg-white">
+    <div class="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-4">
+      <div>
+        <h2 class="font-semibold">Items</h2>
+        <p class="text-xs text-slate-500">Item name, qty, purchase rate, batch number, expiry date. You can also scan a product barcode.</p>
+      </div>
+      <div class="flex flex-wrap items-center gap-2">
+        <input id="grn-barcode" type="text" placeholder="Scan barcode here" autocomplete="off" class="rounded-lg border px-3 py-2 text-sm">
+        <button type="button" id="grn-barcode-add" class="rounded-lg border px-3 py-2 text-sm">Find product</button>
+        <button type="button" id="add-item" class="rounded-lg bg-brand-600 px-3 py-2 text-sm font-medium text-white">Add item</button>
+      </div>
+    </div>
+    <p id="grn-barcode-msg" class="px-5 pt-2 text-sm text-slate-500"></p>
+    {{ formset.management_form }}
+    {{ formset.non_form_errors }}
+    <div class="overflow-x-auto">
+      <table class="min-w-[980px] w-full text-left text-sm">
+        <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+          <tr>
+            <th class="px-4 py-3">Item name</th>
+            <th class="w-28 px-3 py-3">Qty</th>
+            <th class="w-36 px-3 py-3">Purchase rate</th>
+            <th class="w-40 px-3 py-3">Batch number</th>
+            <th class="w-40 px-3 py-3">Expiry date</th>
+            <th class="w-28 px-3 py-3 text-right">Action</th>
+          </tr>
+        </thead>
+        <tbody id="grn-items" class="divide-y">
+          {% for f in formset %}
+            <tr class="grn-item-row align-top {% if f.DELETE.value %}hidden{% endif %}">
+              <td class="px-4 py-3">{{ f.id }}{{ f.product }}{{ f.product.errors }}</td>
+              <td class="px-3 py-3">{{ f.quantity }}{{ f.quantity.errors }}</td>
+              <td class="px-3 py-3">{{ f.purchase_rate }}{{ f.purchase_rate.errors }}</td>
+              <td class="px-3 py-3">{{ f.batch_number }}{{ f.batch_number.errors }}</td>
+              <td class="px-3 py-3">{{ f.expiry_date }}{{ f.expiry_date.errors }}</td>
+              <td class="px-3 py-3 text-right">
+                <div class="hidden">{{ f.DELETE }}</div>
+                <button type="button" class="delete-item rounded-lg border border-red-200 px-2.5 py-1.5 text-xs font-semibold text-red-600">Delete item</button>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <table class="hidden">
+      <tbody id="grn-empty-row">
+        <tr class="grn-item-row align-top">
+          <td class="px-4 py-3">{{ formset.empty_form.id }}{{ formset.empty_form.product }}</td>
+          <td class="px-3 py-3">{{ formset.empty_form.quantity }}</td>
+          <td class="px-3 py-3">{{ formset.empty_form.purchase_rate }}</td>
+          <td class="px-3 py-3">{{ formset.empty_form.batch_number }}</td>
+          <td class="px-3 py-3">{{ formset.empty_form.expiry_date }}</td>
+          <td class="px-3 py-3 text-right">
+            <div class="hidden">{{ formset.empty_form.DELETE }}</div>
+            <button type="button" class="delete-item rounded-lg border border-red-200 px-2.5 py-1.5 text-xs font-semibold text-red-600">Delete item</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <div class="flex justify-end gap-3">
+    <a class="rounded-lg border px-4 py-2.5 text-sm" href="{% url 'purchases:list' %}">Cancel</a>
+    <button type="submit" class="rounded-lg bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white">Save GRN</button>
+  </div>
+</form>
+
+<script>
+  (function () {
+    const tbody = document.getElementById("grn-items");
+    const total = document.getElementById("id_items-TOTAL_FORMS");
+    const empty = document.querySelector("#grn-empty-row tr");
+    const ratesEl = document.getElementById("grn-product-rates");
+    const rates = ratesEl ? JSON.parse(ratesEl.textContent) : {};
+
+    function bindRow(row) {
+      const delBtn = row.querySelector(".delete-item");
+      if (delBtn) {
+        delBtn.addEventListener("click", function () {
+          const checkbox = row.querySelector('input[name$="-DELETE"]');
+          if (checkbox) {
+            checkbox.checked = true;
+            row.classList.add("hidden");
+          } else {
+            row.remove();
+          }
+        });
+      }
+      const product = row.querySelector('select[name$="-product"]');
+      const rate = row.querySelector('input[name$="-purchase_rate"]');
+      if (product && rate) {
+        product.addEventListener("change", function () {
+          if (!rate.value && rates[this.value]) {
+            rate.value = rates[this.value];
+          }
+        });
+      }
+    }
+
+    tbody.querySelectorAll(".grn-item-row").forEach(bindRow);
+
+    document.getElementById("add-item").addEventListener("click", function () {
+      const index = parseInt(total.value, 10);
+      const html = empty.outerHTML.replace(/__prefix__/g, String(index));
+      tbody.insertAdjacentHTML("beforeend", html);
+      bindRow(tbody.lastElementChild);
+      total.value = String(index + 1);
+    });
+
+    function addOrSelectProduct(data) {
+      const rows = Array.from(tbody.querySelectorAll(".grn-item-row")).filter(function (row) {
+        return !row.classList.contains("hidden");
+      });
+      let target = rows.find(function (row) {
+        const select = row.querySelector('select[name$="-product"]');
+        return select && !select.value;
+      });
+      if (!target) {
+        document.getElementById("add-item").click();
+        target = tbody.lastElementChild;
+      }
+      const select = target.querySelector('select[name$="-product"]');
+      const rate = target.querySelector('input[name$="-purchase_rate"]');
+      if (select) {
+        select.value = String(data.id);
+        select.dispatchEvent(new Event("change"));
+      }
+      if (rate && !rate.value && data.purchase_price) {
+        rate.value = data.purchase_price;
+      }
+    }
+
+    const barcodeInput = document.getElementById("grn-barcode");
+    const barcodeMsg = document.getElementById("grn-barcode-msg");
+    function lookupBarcode() {
+      const value = (barcodeInput.value || "").trim();
+      if (!value) {
+        barcodeMsg.textContent = "Enter or scan a barcode.";
+        return;
+      }
+      barcodeMsg.textContent = "Looking up…";
+      fetch("{% url 'products:lookup' %}?barcode=" + encodeURIComponent(value), { headers: { Accept: "application/json" } })
+        .then(function (res) { return res.json().then(function (body) { return { ok: res.ok, body: body }; }); })
+        .then(function (result) {
+          if (!result.body.ok) {
+            barcodeMsg.textContent = result.body.error || "Product not found.";
+            return;
+          }
+          addOrSelectProduct(result.body);
+          barcodeMsg.textContent = result.body.name + " (" + result.body.sku + ") selected.";
+          barcodeInput.value = "";
+          barcodeInput.focus();
+        })
+        .catch(function () {
+          barcodeMsg.textContent = "Could not look up that barcode.";
+        });
+    }
+    document.getElementById("grn-barcode-add").addEventListener("click", lookupBarcode);
+    barcodeInput.addEventListener("keydown", function (event) {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        lookupBarcode();
+      }
+    });
+  })();
+</script>
+{% endblock %}

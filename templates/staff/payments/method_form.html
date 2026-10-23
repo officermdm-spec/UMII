@@ -1,0 +1,10 @@
+{% extends "staff/base.html" %}
+{% block staff_title %}Payment method{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-semibold">Payment method</h1>
+<form method="post" class="mt-4 max-w-xl space-y-4 rounded-2xl border bg-white p-5">
+  {% csrf_token %}
+  {% for field in form %}<div><label class="text-sm font-medium">{{ field.label }}</label>{{ field }}{{ field.errors }}</div>{% endfor %}
+  <button class="rounded-lg bg-brand-600 px-4 py-2 text-white">Save</button>
+</form>
+{% endblock %}

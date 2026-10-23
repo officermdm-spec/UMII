@@ -1,0 +1,12 @@
+{% extends "customers/base.html" %}
+{% block store_title %}{{ return_request.return_number }}{% endblock %}
+{% block account_content %}
+<h1 class="text-2xl font-semibold">{{ return_request.return_number }}</h1>
+<p class="text-sm text-slate-500">Order {{ return_request.order.order_number }} · {% include "components/status_badge.html" with status=return_request.status %}</p>
+<ul class="mt-4 space-y-2 rounded-2xl border bg-white p-4 text-sm">
+  {% for item in return_request.items.all %}
+    <li>{{ item.quantity }} × {{ item.order_item.product_name }} ({{ item.get_condition_display }})</li>
+  {% endfor %}
+</ul>
+<p class="mt-4 text-sm">{{ return_request.reason }} — {{ return_request.description }}</p>
+{% endblock %}

@@ -1,0 +1,78 @@
+{% extends "staff/base.html" %}
+{% block staff_title %}Vendor payments{% endblock %}
+{% block content %}
+{% include "components/staff_header.html" with heading="Vendor payments" create_url="/staff/vendor-payments/add/" show_search=True %}
+{% include "components/accounting_nav.html" %}
+<p class="mt-3 text-sm">
+  <a class="text-brand-700" href="{% url 'accounting:vendor_statement' %}">Vendor statement</a>
+  · Total outstanding {{ total }}
+</p>
+<div class="mt-4 overflow-x-auto rounded-2xl border bg-white">
+  <table class="min-w-full text-sm">
+    <thead class="bg-slate-50 text-left">
+      <tr>
+        <th class="px-4 py-3">Vendor</th>
+        <th class="px-4 py-3">Purchases</th>
+        <th class="px-4 py-3">Paid</th>
+        <th class="px-4 py-3">Outstanding</th>
+        <th class="px-4 py-3 text-right">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+        <tr class="border-t">
+          <td class="px-4 py-3">{{ row.vendor }}</td>
+          <td class="px-4 py-3">{{ row.purchases }}</td>
+          <td class="px-4 py-3">{{ row.paid }}</td>
+          <td class="px-4 py-3">{{ row.outstanding }}</td>
+          <td class="px-4 py-3">
+            {% url 'vendors:detail' row.vendor.pk as vendor_view %}
+            {% include "components/table_actions.html" with view_url=vendor_view %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td class="px-4 py-6 text-slate-500" colspan="5">No vendors yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+<h2 class="mt-8 text-lg font-semibold">Payment ledger</h2>
+<div class="mt-3 overflow-x-auto rounded-2xl border bg-white">
+  <table class="min-w-full text-sm">
+    <thead class="bg-slate-50 text-left">
+      <tr>
+        <th class="px-4 py-3">Date</th>
+        <th class="px-4 py-3">Vendor</th>
+        <th class="px-4 py-3">Amount</th>
+        <th class="px-4 py-3">Account</th>
+        <th class="px-4 py-3">Reference</th>
+        <th class="px-4 py-3">Status</th>
+        <th class="px-4 py-3 text-right">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for payment in payments %}
+        <tr class="border-t">
+          <td class="px-4 py-3">{{ payment.date }}</td>
+          <td class="px-4 py-3">{{ payment.vendor }}</td>
+          <td class="px-4 py-3">{{ payment.amount }}</td>
+          <td class="px-4 py-3">{{ payment.payment_account }}</td>
+          <td class="px-4 py-3">{{ payment.reference|default:"—" }}</td>
+          <td class="px-4 py-3">{% include "components/status_badge.html" with status=payment.status %}</td>
+          <td class="px-4 py-3">
+            <div class="table-actions flex flex-wrap justify-end gap-2">
+              <a class="rounded-lg border px-3 py-1.5 text-xs font-medium text-brand-700" href="{% url 'vendor_payments:detail' payment.pk %}">View</a>
+              {% if staff_can_write and payment.status == 'posted' %}
+                <a class="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600" href="{% url 'vendor_payments:void' payment.pk %}">Delete</a>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td class="px-4 py-6 text-slate-500" colspan="7">No vendor payments recorded yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% include "components/pagination.html" %}
+{% endblock %}

@@ -1,0 +1,28 @@
+{% extends "staff/base.html" %}
+{% block staff_title %}Vendors{% endblock %}
+{% block content %}
+{% include "components/staff_header.html" with heading="Vendors" create_url="/staff/vendors/add/" show_search=True %}
+<div class="mt-4 overflow-x-auto rounded-2xl border bg-white">
+  <table class="min-w-full text-sm">
+    <thead class="bg-slate-50 text-left"><tr><th class="px-4 py-3">Vendor</th><th class="px-4 py-3">Phone</th><th class="px-4 py-3">City</th><th class="px-4 py-3 text-right">Actions</th></tr></thead>
+    <tbody>
+      {% for v in vendors %}
+        <tr class="border-t">
+          <td class="px-4 py-3"><a class="text-brand-700" href="{% url 'vendors:detail' v.pk %}">{{ v }}</a></td>
+          <td class="px-4 py-3">{{ v.phone }}</td>
+          <td class="px-4 py-3">{{ v.city }}</td>
+          <td class="px-4 py-3">
+            {% url 'vendors:detail' v.pk as v_view %}
+            {% url 'vendors:update' v.pk as v_edit %}
+            {% url 'vendors:delete' v.pk as v_delete %}
+            {% include "components/table_actions.html" with view_url=v_view edit_url=v_edit delete_url=v_delete %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td class="px-4 py-6 text-slate-500" colspan="4">No vendors yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% include "components/pagination.html" %}
+{% endblock %}

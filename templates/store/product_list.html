@@ -1,0 +1,62 @@
+{% extends "store/base.html" %}
+{% block store_title %}Shop{% endblock %}
+{% block content %}
+<div class="mb-7 flex flex-wrap items-end justify-between gap-3">
+  <div>
+    <p class="text-xs font-semibold uppercase tracking-[0.18em] text-brand-600">Our collection</p>
+    <h1 class="mt-1 text-3xl font-bold tracking-tight">{% if category_obj %}{{ category_obj }}{% else %}Find something you'll love{% endif %}</h1>
+    <p class="mt-2 text-sm text-slate-500">Search, filter, and choose with confidence.</p>
+  </div>
+</div>
+<div class="grid gap-6 lg:grid-cols-[240px_1fr]">
+  <aside class="surface-card h-fit rounded-2xl p-5 lg:sticky lg:top-24">
+    <div class="mb-4 flex items-center justify-between">
+      <h2 class="font-semibold">Filters</h2>
+      <a class="text-xs text-brand-700" href="{% url 'store:product_list' %}">Reset</a>
+    </div>
+    <form method="get" class="space-y-4 text-sm">
+      <div>
+        <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Search</label>
+        <input name="q" value="{{ q }}" placeholder="Product or SKU" class="modern-input mt-1.5 w-full rounded-xl border border-sky-100 bg-slate-50 px-3 py-2.5">
+      </div>
+      <div>
+        <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Category</label>
+        <select name="category" class="modern-input mt-1.5 w-full rounded-xl border border-sky-100 bg-slate-50 px-3 py-2.5">
+          <option value="">All</option>
+          {% for cat in categories %}
+            <option value="{{ cat.slug }}" {% if current_category == cat.slug %}selected{% endif %}>{{ cat }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="grid grid-cols-2 gap-2">
+        <input name="min_price" type="number" step="0.01" placeholder="Min price" value="{{ request.GET.min_price }}" class="modern-input rounded-xl border border-sky-100 bg-slate-50 px-3 py-2.5">
+        <input name="max_price" type="number" step="0.01" placeholder="Max price" value="{{ request.GET.max_price }}" class="modern-input rounded-xl border border-sky-100 bg-slate-50 px-3 py-2.5">
+      </div>
+      <div>
+        <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Sort by</label>
+        <select name="sort" class="modern-input mt-1.5 w-full rounded-xl border border-sky-100 bg-slate-50 px-3 py-2.5">
+          <option value="newest" {% if sort == 'newest' %}selected{% endif %}>Newest</option>
+          <option value="price_asc" {% if sort == 'price_asc' %}selected{% endif %}>Price: Low to high</option>
+          <option value="price_desc" {% if sort == 'price_desc' %}selected{% endif %}>Price: High to low</option>
+          <option value="name" {% if sort == 'name' %}selected{% endif %}>Name</option>
+        </select>
+      </div>
+      <button class="btn-primary w-full py-2.5 font-semibold">Apply filters</button>
+    </form>
+  </aside>
+  <div>
+    <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+      {% for product in products %}
+        {% include "components/product_card.html" %}
+      {% empty %}
+        <div class="surface-card rounded-3xl p-10 text-center sm:col-span-2 xl:col-span-3">
+          <p class="text-lg font-semibold">No products found</p>
+          <p class="mt-1 text-sm text-slate-500">Try changing your filters or search term.</p>
+          <a class="btn-secondary mt-5 px-4 py-2 text-sm" href="{% url 'store:product_list' %}">Clear filters</a>
+        </div>
+      {% endfor %}
+    </div>
+    {% include "components/pagination.html" %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,27 @@
+{% extends "staff/base.html" %}
+{% block staff_title %}Categories{% endblock %}
+{% block content %}
+{% include "components/staff_header.html" with heading="Categories" create_url="/staff/categories/add/" show_search=True %}
+<div class="mt-4 overflow-x-auto rounded-2xl border bg-white">
+  <table class="min-w-full text-sm">
+    <thead class="bg-slate-50 text-left"><tr><th class="px-4 py-3">Name</th><th class="px-4 py-3">Parent</th><th class="px-4 py-3">Active</th><th class="px-4 py-3 text-right">Actions</th></tr></thead>
+    <tbody>
+      {% for cat in categories %}
+        <tr class="border-t">
+          <td class="px-4 py-3">{{ cat.name }}</td>
+          <td class="px-4 py-3">{{ cat.parent|default:"-" }}</td>
+          <td class="px-4 py-3">{{ cat.is_active }}</td>
+          <td class="px-4 py-3">
+            {% url 'categories:update' cat.pk as cat_edit %}
+            {% url 'categories:delete' cat.pk as cat_delete %}
+            {% include "components/table_actions.html" with view_url=cat_edit edit_url=cat_edit delete_url=cat_delete %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td class="px-4 py-6 text-slate-500" colspan="4">No categories yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% include "components/pagination.html" %}
+{% endblock %}

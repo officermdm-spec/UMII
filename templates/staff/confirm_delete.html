@@ -1,0 +1,15 @@
+{% extends "staff/base.html" %}
+{% block staff_title %}Confirm delete{% endblock %}
+{% block content %}
+<div class="confirm-overlay no-print">
+  <div class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+    <h1 id="confirm-title" class="text-xl font-semibold">{{ confirm_title|default:"Delete this record?" }}</h1>
+    <p class="mt-2 text-sm text-slate-600">{% if object_label %}“{{ object_label }}” will be removed. {% endif %}{{ confirm_message|default:"This action cannot be undone." }}</p>
+    <form method="post" class="mt-4 flex flex-wrap gap-3">
+      {% csrf_token %}
+      <button class="rounded-lg bg-red-600 px-4 py-2 text-white" type="submit">{{ confirm_label|default:"Delete" }}</button>
+      <a class="rounded-lg border px-4 py-2" href="{% if cancel_url %}{{ cancel_url }}{% else %}javascript:history.back(){% endif %}">Cancel</a>
+    </form>
+  </div>
+</div>
+{% endblock %}

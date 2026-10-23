@@ -1,0 +1,52 @@
+{% extends "staff/base.html" %}
+{% block staff_title %}GRN{% endblock %}
+{% block content %}
+{% include "components/staff_header.html" with heading="Goods receiving" create_url="/staff/grn/add/" %}
+<form method="get" class="mt-4 flex max-w-xl gap-2">
+  <input name="q" value="{{ request.GET.q }}" placeholder="Find by voucher number" class="w-full rounded-lg border px-3 py-2 text-sm">
+  <button class="rounded-lg border border-brand-600 px-4 py-2 text-sm font-medium text-brand-700">Find</button>
+</form>
+<div class="mt-4 overflow-x-auto rounded-2xl border bg-white">
+  <table class="min-w-full text-sm">
+    <thead class="bg-slate-50 text-left">
+      <tr>
+        <th class="px-4 py-3">Voucher</th>
+        <th class="px-4 py-3">Vendor</th>
+        <th class="px-4 py-3">Invoice</th>
+        <th class="px-4 py-3">Warehouse</th>
+        <th class="px-4 py-3">Date</th>
+        <th class="px-4 py-3">Status</th>
+        <th class="px-4 py-3 text-right">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for grn in grns %}
+        <tr class="border-t">
+          <td class="px-4 py-3 font-medium">
+            <a class="text-brand-700" href="{% url 'purchases:detail' grn.pk %}">{{ grn.grn_number }}</a>
+          </td>
+          <td class="px-4 py-3">{{ grn.vendor }}</td>
+          <td class="px-4 py-3">{{ grn.invoice_number|default:"—" }}</td>
+          <td class="px-4 py-3">{{ grn.warehouse }}</td>
+          <td class="px-4 py-3">{{ grn.grn_date }}</td>
+          <td class="px-4 py-3">{% include "components/status_badge.html" with status=grn.status %}</td>
+          <td class="px-4 py-3">
+            <div class="table-actions flex flex-wrap justify-end gap-2">
+              <a class="rounded-lg border px-3 py-1.5 text-xs font-medium text-brand-700" href="{% url 'purchases:detail' grn.pk %}">View</a>
+              {% if staff_can_write and grn.can_edit %}
+                <a class="rounded-lg border px-3 py-1.5 text-xs font-medium text-slate-700" href="{% url 'purchases:update' grn.pk %}">Edit</a>
+                <a class="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600" href="{% url 'purchases:delete' grn.pk %}">Delete</a>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td class="px-4 py-8 text-center text-slate-500" colspan="7">No GRNs yet. Create a voucher to get started.</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% include "components/pagination.html" %}
+{% endblock %}

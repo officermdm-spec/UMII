@@ -1,0 +1,12 @@
+<div class="flex flex-wrap items-center justify-between gap-3">
+  <h1 class="text-2xl font-semibold">{{ heading }}</h1>
+  <div class="no-print flex flex-wrap gap-2">
+    {% include "components/print_button.html" %}
+    {% if create_url and staff_can_write %}<a class="rounded-lg bg-brand-600 px-3 py-2 text-sm text-white" href="{{ create_url }}">Add</a>{% endif %}
+  </div>
+</div>
+{% if show_search %}
+  <form method="get" class="no-print mt-4">
+    <input name="q" value="{{ request.GET.q }}" placeholder="Search" class="w-full max-w-sm rounded-lg border px-3 py-2 text-sm">
+  </form>
+{% endif %}

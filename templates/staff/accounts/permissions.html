@@ -1,0 +1,65 @@
+{% extends "staff/base.html" %}
+{% block staff_title %}User permissions{% endblock %}
+{% block content %}
+<div class="flex flex-wrap items-center justify-between gap-3">
+  <div>
+    <h1 class="text-2xl font-semibold">User module permissions</h1>
+    <p class="mt-1 text-sm text-slate-500">Select a staff user, then choose every module they should see in the staff panel (Warehouses, Brands, Orders, Accounting, and the rest).</p>
+  </div>
+  <a class="text-sm text-brand-700" href="{% url 'accounts:user_list' %}">Staff users</a>
+</div>
+
+<form method="post" class="mt-5 max-w-3xl space-y-5 rounded-2xl border bg-white p-5">
+  {% csrf_token %}
+  {{ form.non_field_errors }}
+  <div>
+    <label class="text-sm font-medium">{{ form.user.label }}</label>
+    {{ form.user }}
+    {{ form.user.errors }}
+  </div>
+  <div>
+    <label class="text-sm font-medium">{{ form.access_mode.label }}</label>
+    {{ form.access_mode }}
+    <p class="mt-1 text-xs text-slate-500">{{ form.access_mode.help_text }}</p>
+    {{ form.access_mode.errors }}
+  </div>
+  <div>
+    <div class="mb-3 flex items-center justify-between gap-3">
+      <label class="font-medium">{{ form.modules.label }}</label>
+      <div class="flex gap-3 text-sm">
+        <button type="button" class="text-brand-700" data-select-modules> Select all </button>
+        <button type="button" class="text-slate-500" data-clear-modules> Clear </button>
+      </div>
+    </div>
+    <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+      {% for checkbox in form.modules %}
+        <label class="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm hover:border-brand-300">
+          {{ checkbox.tag }}
+          <span>{{ checkbox.choice_label }}</span>
+        </label>
+      {% endfor %}
+    </div>
+    {{ form.modules.errors }}
+  </div>
+  <button class="rounded-lg bg-brand-600 px-4 py-2 font-medium text-white">Save permissions</button>
+</form>
+{% endblock %}
+{% block extra_js %}
+<script>
+(function () {
+  var user = document.getElementById("id_user");
+  var boxes = document.querySelectorAll('input[name="modules"]');
+  if (user) {
+    user.addEventListener("change", function () {
+      window.location.href = "{% url 'accounts:permissions' %}?user=" + encodeURIComponent(user.value);
+    });
+  }
+  document.querySelector("[data-select-modules]")?.addEventListener("click", function () {
+    boxes.forEach(function (box) { box.checked = true; });
+  });
+  document.querySelector("[data-clear-modules]")?.addEventListener("click", function () {
+    boxes.forEach(function (box) { box.checked = false; });
+  });
+})();
+</script>
+{% endblock %}

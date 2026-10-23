@@ -1,0 +1,68 @@
+{% extends "staff/base.html" %}
+{% block staff_title %}Product{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-semibold">{% if object %}Edit product{% else %}Add product{% endif %}</h1>
+<form method="post" enctype="multipart/form-data" class="mt-4 max-w-3xl space-y-4 rounded-2xl border bg-white p-5">
+  {% csrf_token %}
+  {% for field in form %}<div><label class="text-sm font-medium">{{ field.label }}</label>{{ field }}{{ field.errors }}</div>{% endfor %}
+
+  {% if object %}
+  <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+    <p class="text-xs uppercase tracking-wide text-slate-500">SKU</p>
+    <p class="font-medium">{{ object.sku }}</p>
+    <p class="mt-2 text-xs uppercase tracking-wide text-slate-500">Barcode</p>
+    <p class="font-mono font-semibold">{{ object.barcode }}</p>
+    <img src="{% url 'products:barcode_png' object.pk %}" alt="{{ object.barcode }}" class="mt-2 h-auto w-64" style="image-rendering:pixelated">
+    <div class="mt-3 flex flex-wrap gap-2 text-sm">
+      <a class="text-brand-700" href="{% url 'products:detail' object.pk %}">Barcode page</a>
+      <a class="text-brand-700" href="{% url 'products:barcode_print' object.pk %}">Print</a>
+      <a class="text-brand-700" href="{% url 'products:barcode_download' object.pk %}">Download</a>
+    </div>
+    <p class="mt-2 text-xs text-slate-500">Barcode stays the same when price, discount, or stock changes.</p>
+  </div>
+  {% endif %}
+
+  <div class="rounded-xl border border-sky-100 bg-sky-50/40 p-4 space-y-3">
+    <h2 class="text-sm font-semibold text-slate-800">Images</h2>
+    <div>
+      <label class="text-sm font-medium">Main image</label>
+      <input type="file" name="main_image" accept="image/*" class="mt-1 block w-full text-sm">
+      {% if object and object.image %}
+        <div class="mt-2 flex items-center gap-3">
+          <img src="{{ object.image.url }}" alt="" class="h-20 w-20 rounded-lg border object-cover" onerror="this.style.opacity='0.3'">
+          <label class="flex items-center gap-2 text-sm text-red-600">
+            <input type="checkbox" name="clear_main_image" value="1"> Remove main image
+          </label>
+        </div>
+      {% endif %}
+    </div>
+    <div>
+      <label class="text-sm font-medium">Gallery images (multiple)</label>
+      <input type="file" name="gallery" accept="image/*" multiple class="mt-1 block w-full text-sm">
+      <p class="mt-1 text-xs text-slate-500">You can select several photos at once. They appear on the product page.</p>
+    </div>
+    {% if gallery %}
+      <div>
+        <p class="text-sm font-medium">Current gallery</p>
+        <div class="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {% for img in gallery %}
+            <div class="rounded-xl border bg-white p-2">
+              <img src="{{ img.image.url }}" alt="{{ img.alt_text }}" class="h-28 w-full rounded-lg object-cover" onerror="this.style.opacity='0.3'">
+              <div class="mt-2 space-y-1 text-xs">
+                <label class="flex items-center gap-2">
+                  <input type="radio" name="set_main_image" value="{{ img.pk }}"> Set as main
+                </label>
+                <label class="flex items-center gap-2 text-red-600">
+                  <input type="checkbox" name="delete_images" value="{{ img.pk }}"> Delete
+                </label>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+  </div>
+
+  <button class="rounded-lg bg-brand-600 px-4 py-2 text-white">Save product</button>
+</form>
+{% endblock %}

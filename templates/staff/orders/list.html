@@ -1,0 +1,50 @@
+{% extends "staff/base.html" %}
+{% block staff_title %}Orders{% endblock %}
+{% block content %}
+{% include "components/staff_header.html" with heading="Orders" show_search=True %}
+<form method="get" class="no-print mt-3 flex flex-wrap gap-3">
+  <select name="status" onchange="this.form.submit()" class="rounded-lg border px-3 py-2 text-sm">
+    <option value="">All order statuses</option>
+    {% for value,label in statuses %}
+      <option value="{{ value }}" {% if request.GET.status == value %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
+  <select name="payment_status" onchange="this.form.submit()" class="rounded-lg border px-3 py-2 text-sm">
+    <option value="">All payment statuses</option>
+    {% for value,label in payment_statuses %}
+      <option value="{{ value }}" {% if request.GET.payment_status == value %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
+  {% if request.GET.q %}<input type="hidden" name="q" value="{{ request.GET.q }}">{% endif %}
+</form>
+<div class="mt-4 overflow-x-auto rounded-2xl border bg-white">
+  <table class="min-w-full text-sm">
+    <thead class="bg-slate-50 text-left"><tr><th class="px-4 py-3">Order</th><th class="px-4 py-3">Customer</th><th class="px-4 py-3">Total</th><th class="px-4 py-3">Order status</th><th class="px-4 py-3">Payment</th><th class="px-4 py-3 text-right">Actions</th></tr></thead>
+    <tbody>
+      {% for order in orders %}
+        <tr class="border-t">
+          <td class="px-4 py-3"><a class="text-brand-700" href="{% url 'orders_staff:detail' order.pk %}">{{ order.order_number }}</a></td>
+          <td class="px-4 py-3">{{ order.customer }}</td>
+          <td class="px-4 py-3">{{ order.grand_total }}</td>
+          <td class="px-4 py-3">{% include "components/order_status_cell.html" with order=order %}</td>
+          <td class="px-4 py-3">{% include "components/status_badge.html" with status=order.payment_status %}</td>
+          <td class="px-4 py-3">
+            <div class="table-actions flex flex-wrap justify-end gap-2">
+              <a class="rounded-lg border px-3 py-1.5 text-xs font-medium text-brand-700" href="{% url 'orders_staff:detail' order.pk %}">View</a>
+              {% if staff_can_write %}
+                <a class="rounded-lg border px-3 py-1.5 text-xs font-medium text-slate-700" href="{% url 'orders_staff:detail' order.pk %}">Edit</a>
+                {% if order.status == 'pending' %}
+                  <a class="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600" href="{% url 'orders_staff:delete' order.pk %}">Delete</a>
+                {% endif %}
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td class="px-4 py-6 text-slate-500" colspan="6">No orders yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% include "components/pagination.html" %}
+{% endblock %}

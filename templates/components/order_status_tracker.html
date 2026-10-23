@@ -1,0 +1,149 @@
+{# Expects `tracker` from build_order_tracker(order) #}
+<section class="rounded-2xl border border-sky-200/80 bg-gradient-to-br from-white via-sky-50/40 to-white p-5 shadow-sm sm:p-6">
+  <div class="flex flex-wrap items-start justify-between gap-3">
+    <div>
+      <p class="text-xs font-semibold uppercase tracking-wide text-sky-700/80">Order tracking</p>
+      <h2 class="mt-1 text-lg font-semibold text-slate-900">{{ tracker.current_label }}</h2>
+      <p class="mt-1 text-sm text-slate-600">{{ tracker.current_hint }}</p>
+    </div>
+    <div class="text-right">
+      {% if tracker.mode == 'cancelled' %}
+        <span class="inline-flex rounded-full bg-red-100 px-2.5 py-1 text-xs font-medium text-red-700">Cancelled</span>
+      {% elif tracker.mode == 'return' %}
+        <span class="inline-flex rounded-full bg-orange-100 px-2.5 py-1 text-xs font-medium text-orange-800">Return flow</span>
+      {% else %}
+        <span class="inline-flex rounded-full bg-sky-100 px-2.5 py-1 text-xs font-medium text-sky-800">{{ tracker.progress_percent }}% complete</span>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if tracker.mode != 'cancelled' %}
+    <div class="mt-4 h-1.5 overflow-hidden rounded-full bg-slate-200/80">
+      <div
+        class="h-full rounded-full transition-all duration-500 {% if tracker.mode == 'return' %}bg-orange-500{% else %}bg-brand-600{% endif %}"
+        style="width: {{ tracker.progress_percent }}%"
+      ></div>
+    </div>
+  {% endif %}
+
+  {# Desktop / tablet horizontal stepper #}
+  <ol class="mt-6 hidden md:flex md:items-start">
+    {% for step in tracker.steps %}
+      <li class="relative flex flex-1 flex-col items-center text-center {% if not forloop.last %}pr-2{% endif %}">
+        {% if not forloop.last %}
+          <span
+            class="absolute left-[calc(50%+18px)] right-[calc(-50%+18px)] top-4 h-0.5
+              {% if step.state == 'done' or step.state == 'cancelled' %}bg-brand-500
+              {% elif step.state == 'current' %}bg-gradient-to-r from-brand-500 to-slate-200
+              {% else %}bg-slate-200{% endif %}
+              {% if tracker.mode == 'cancelled' and step.state == 'done' %}bg-slate-300{% endif %}
+              {% if step.state == 'cancelled' %}!bg-red-300{% endif %}"
+            aria-hidden="true"
+          ></span>
+        {% endif %}
+        <span
+          class="relative z-10 flex h-8 w-8 items-center justify-center rounded-full border-2 text-xs font-semibold
+            {% if step.state == 'done' %}border-brand-600 bg-brand-600 text-white
+            {% elif step.state == 'current' %}border-brand-600 bg-white text-brand-700 ring-4 ring-brand-500/20
+            {% elif step.state == 'cancelled' %}border-red-500 bg-red-500 text-white
+            {% elif step.state == 'skipped' %}border-slate-200 bg-slate-100 text-slate-400
+            {% else %}border-slate-200 bg-white text-slate-400{% endif %}"
+        >
+          {% if step.state == 'done' %}
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+          {% elif step.state == 'cancelled' %}
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+          {% else %}
+            {{ forloop.counter }}
+          {% endif %}
+        </span>
+        <span class="mt-2 text-xs font-semibold
+          {% if step.state == 'current' %}text-brand-800
+          {% elif step.state == 'done' %}text-slate-800
+          {% elif step.state == 'cancelled' %}text-red-700
+          {% else %}text-slate-400{% endif %}">{{ step.label }}{% if step.optional %} <span class="font-normal">(optional)</span>{% endif %}</span>
+        {% if step.at %}
+          <span class="mt-0.5 text-[11px] text-slate-400">{{ step.at|date:"d M, H:i" }}</span>
+        {% endif %}
+      </li>
+    {% endfor %}
+  </ol>
+
+  {# Mobile vertical stepper #}
+  <ol class="mt-5 space-y-0 md:hidden">
+    {% for step in tracker.steps %}
+      <li class="relative flex gap-3 pb-5 last:pb-0">
+        {% if not forloop.last %}
+          <span
+            class="absolute bottom-0 left-[15px] top-8 w-0.5
+              {% if step.state == 'done' %}bg-brand-500
+              {% elif step.state == 'current' %}bg-gradient-to-b from-brand-500 to-slate-200
+              {% elif step.state == 'cancelled' %}bg-red-300
+              {% else %}bg-slate-200{% endif %}"
+            aria-hidden="true"
+          ></span>
+        {% endif %}
+        <span
+          class="relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 text-xs font-semibold
+            {% if step.state == 'done' %}border-brand-600 bg-brand-600 text-white
+            {% elif step.state == 'current' %}border-brand-600 bg-white text-brand-700 ring-4 ring-brand-500/15
+            {% elif step.state == 'cancelled' %}border-red-500 bg-red-500 text-white
+            {% elif step.state == 'skipped' %}border-slate-200 bg-slate-100 text-slate-400
+            {% else %}border-slate-200 bg-white text-slate-400{% endif %}"
+        >
+          {% if step.state == 'done' %}
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+          {% elif step.state == 'cancelled' %}
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+          {% else %}
+            {{ forloop.counter }}
+          {% endif %}
+        </span>
+        <div class="min-w-0 pt-0.5">
+          <p class="text-sm font-semibold
+            {% if step.state == 'current' %}text-brand-800
+            {% elif step.state == 'cancelled' %}text-red-700
+            {% elif step.state == 'upcoming' or step.state == 'skipped' %}text-slate-400
+            {% else %}text-slate-800{% endif %}">{{ step.label }}{% if step.optional %} <span class="font-normal">(optional)</span>{% endif %}</p>
+          <p class="text-xs text-slate-500">{{ step.hint }}</p>
+          {% if step.at %}
+            <p class="mt-0.5 text-[11px] text-slate-400">{{ step.at|date:"d M Y, H:i" }}</p>
+          {% endif %}
+        </div>
+      </li>
+    {% endfor %}
+  </ol>
+
+  {% if tracker.history %}
+    <details class="mt-5 rounded-xl border border-sky-100 bg-white/80 open:shadow-sm">
+      <summary class="cursor-pointer list-none px-4 py-3 text-sm font-medium text-slate-700 marker:content-none [&::-webkit-details-marker]:hidden">
+        <span class="flex items-center justify-between gap-2">
+          <span>Full status history</span>
+          <span class="text-xs font-normal text-slate-400">{{ tracker.history|length }} update{{ tracker.history|length|pluralize }}</span>
+        </span>
+      </summary>
+      <ol class="space-y-0 border-t border-sky-50 px-4 py-3">
+        {% for row in tracker.history %}
+          <li class="relative flex gap-3 pb-4 last:pb-0">
+            {% if not forloop.last %}
+              <span class="absolute bottom-0 left-[5px] top-3 w-px bg-slate-200" aria-hidden="true"></span>
+            {% endif %}
+            <span class="relative mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full
+              {% if row.status == 'cancelled' %}bg-red-500
+              {% elif row.status == 'delivered' or row.status == 'returned' %}bg-emerald-500
+              {% elif forloop.last %}bg-brand-600
+              {% else %}bg-slate-300{% endif %}"></span>
+            <div class="min-w-0 text-sm">
+              <p class="font-medium text-slate-800">{{ row.get_status_display }}</p>
+              <p class="text-xs text-slate-500">
+                {{ row.created_at|date:"d M Y, H:i" }}
+                {% if row.changed_by %} · {{ row.changed_by }}{% endif %}
+                {% if row.note %} · {{ row.note }}{% endif %}
+              </p>
+            </div>
+          </li>
+        {% endfor %}
+      </ol>
+    </details>
+  {% endif %}
+</section>

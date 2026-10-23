@@ -1,0 +1,46 @@
+{% extends "staff/base.html" %}
+{% block staff_title %}Staff user{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-semibold">Staff user</h1>
+<form method="post" enctype="multipart/form-data" class="mt-4 max-w-3xl space-y-4 rounded-2xl border bg-white p-5">
+  {% csrf_token %}
+  {{ form.non_field_errors }}
+  {% for field in form %}
+    {% if field.name != "modules" %}
+      <div><label class="text-sm font-medium">{{ field.label }}</label>{{ field }}{{ field.errors }}</div>
+    {% endif %}
+  {% endfor %}
+  <div>
+    <div class="mb-3 flex items-center justify-between gap-3">
+      <label class="font-medium">{{ form.modules.label }}</label>
+      <div class="flex gap-3 text-sm">
+        <button type="button" class="text-brand-700" data-select-modules> Select all </button>
+        <button type="button" class="text-slate-500" data-clear-modules> Clear </button>
+      </div>
+    </div>
+    <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+      {% for checkbox in form.modules %}
+        <label class="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm hover:border-brand-300">
+          {{ checkbox.tag }}
+          <span>{{ checkbox.choice_label }}</span>
+        </label>
+      {% endfor %}
+    </div>
+    {{ form.modules.errors }}
+  </div>
+  <button class="rounded-lg bg-brand-600 px-4 py-2 text-white">Save</button>
+</form>
+{% endblock %}
+{% block extra_js %}
+<script>
+(function () {
+  var boxes = document.querySelectorAll('input[name="modules"]');
+  document.querySelector("[data-select-modules]")?.addEventListener("click", function () {
+    boxes.forEach(function (box) { box.checked = true; });
+  });
+  document.querySelector("[data-clear-modules]")?.addEventListener("click", function () {
+    boxes.forEach(function (box) { box.checked = false; });
+  });
+})();
+</script>
+{% endblock %}

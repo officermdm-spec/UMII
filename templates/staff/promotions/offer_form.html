@@ -1,0 +1,86 @@
+{% extends "staff/base.html" %}
+{% block staff_title %}Product offer{% endblock %}
+{% block content %}
+{% include "components/staff_header.html" with heading="Promotions" %}
+{% include "components/promotions_nav.html" %}
+<h2 class="mt-5 text-xl font-semibold">{% if object %}Edit product offer{% else %}New product offer{% endif %}</h2>
+<p class="mt-1 text-sm text-slate-500">Example: Summer Sale — 20% off selected products. Sale price shows on the product card while the offer is live.</p>
+<form method="post" class="mt-4 max-w-xl space-y-4 rounded-2xl border bg-white p-5" onsubmit="var b=this.querySelector('[data-submit]'); if(b){b.disabled=true; b.textContent='Saving…';}">
+  {% csrf_token %}
+  {{ form.non_field_errors }}
+  <div>
+    <label class="text-sm font-medium" for="{{ form.name.id_for_label }}">{{ form.name.label }}</label>
+    {{ form.name }}{{ form.name.errors }}
+  </div>
+  <div>
+    <p class="text-sm font-medium">{{ form.offer_type.label }}</p>
+    <div class="mt-2 space-y-1 text-sm">{{ form.offer_type }}</div>
+    {{ form.offer_type.errors }}
+  </div>
+  <div id="offer-value-wrap">
+    <label class="text-sm font-medium" for="{{ form.value.id_for_label }}">{{ form.value.label }}</label>
+    {{ form.value }}
+    {% if form.value.help_text %}<p class="mt-1 text-xs text-slate-500">{{ form.value.help_text }}</p>{% endif %}
+    {{ form.value.errors }}
+  </div>
+  <div id="offer-bxgy-wrap" class="grid gap-4 sm:grid-cols-2">
+    <div>
+      <label class="text-sm font-medium" for="{{ form.buy_qty.id_for_label }}">{{ form.buy_qty.label }}</label>
+      {{ form.buy_qty }}
+      {% if form.buy_qty.help_text %}<p class="mt-1 text-xs text-slate-500">{{ form.buy_qty.help_text }}</p>{% endif %}
+      {{ form.buy_qty.errors }}
+    </div>
+    <div>
+      <label class="text-sm font-medium" for="{{ form.get_qty.id_for_label }}">{{ form.get_qty.label }}</label>
+      {{ form.get_qty }}
+      {% if form.get_qty.help_text %}<p class="mt-1 text-xs text-slate-500">{{ form.get_qty.help_text }}</p>{% endif %}
+      {{ form.get_qty.errors }}
+    </div>
+  </div>
+  <div>
+    <p class="text-sm font-medium">{{ form.products.label }}</p>
+    {% if form.products.help_text %}<p class="mt-1 text-xs text-slate-500">{{ form.products.help_text }}</p>{% endif %}
+    <div class="mt-2 max-h-56 overflow-y-auto rounded-lg border border-slate-200 p-3 text-sm">
+      {% if form.products.field.queryset.exists %}
+        {{ form.products }}
+      {% else %}
+        <p class="text-slate-500">No inventory products yet. Add stock first, then come back.</p>
+      {% endif %}
+    </div>
+    {{ form.products.errors }}
+  </div>
+  <div class="grid gap-4 sm:grid-cols-2">
+    <div>
+      <label class="text-sm font-medium" for="{{ form.start_date.id_for_label }}">{{ form.start_date.label }}</label>
+      {{ form.start_date }}{{ form.start_date.errors }}
+    </div>
+    <div>
+      <label class="text-sm font-medium" for="{{ form.end_date.id_for_label }}">{{ form.end_date.label }}</label>
+      {{ form.end_date }}{{ form.end_date.errors }}
+    </div>
+  </div>
+  <label class="flex items-center gap-2 text-sm">{{ form.is_active }} {{ form.is_active.label }}</label>
+  <label class="flex items-center gap-2 text-sm">{{ form.show_on_website }} {{ form.show_on_website.label }}</label>
+  <div class="flex flex-wrap items-center gap-3">
+    <button data-submit class="rounded-lg bg-brand-600 px-4 py-2 text-white">Save offer</button>
+    {% if object %}
+      <a class="rounded-lg border border-red-200 px-4 py-2 text-red-600" href="{% url 'promotions:offer_delete' object.pk %}">Delete</a>
+    {% endif %}
+  </div>
+</form>
+<script>
+(function () {
+  var radios = document.querySelectorAll('input[name="offer_type"]');
+  var valueWrap = document.getElementById("offer-value-wrap");
+  var bxgyWrap = document.getElementById("offer-bxgy-wrap");
+  function sync() {
+    var selected = document.querySelector('input[name="offer_type"]:checked');
+    var isBxgy = selected && selected.value === "buy_x_get_y";
+    if (valueWrap) valueWrap.classList.toggle("hidden", !!isBxgy);
+    if (bxgyWrap) bxgyWrap.classList.toggle("hidden", !isBxgy);
+  }
+  radios.forEach(function (el) { el.addEventListener("change", sync); });
+  sync();
+})();
+</script>
+{% endblock %}

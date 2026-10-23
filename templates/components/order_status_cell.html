@@ -1,0 +1,23 @@
+{# Compact progress for list rows. Expects `order`. #}
+{% with s=order.status %}
+  <div class="min-w-[9rem]">
+    {% include "components/status_badge.html" with status=s %}
+    {% if s == 'cancelled' %}
+      <p class="mt-1 text-[11px] text-red-600">Order cancelled</p>
+    {% elif s == 'return_requested' %}
+      <p class="mt-1 text-[11px] text-orange-700">Return in review</p>
+    {% elif s == 'returned' %}
+      <p class="mt-1 text-[11px] text-slate-500">Return completed</p>
+    {% elif s == 'received' %}
+      <p class="mt-1 text-[11px] text-emerald-700">Received by customer</p>
+    {% elif s == 'delivered' %}
+      <p class="mt-1 text-[11px] text-emerald-700">Delivered</p>
+    {% elif s == 'processing' %}
+      <p class="mt-1 text-[11px] text-indigo-700">Preparing items</p>
+    {% elif s == 'confirmed' %}
+      <p class="mt-1 text-[11px] text-sky-700">Confirmed</p>
+    {% else %}
+      <p class="mt-1 text-[11px] text-amber-700">Awaiting confirmation</p>
+    {% endif %}
+  </div>
+{% endwith %}

@@ -1,0 +1,98 @@
+{% extends "staff/base.html" %}
+{% block staff_title %}Inventory{% endblock %}
+{% block content %}
+{% include "components/staff_header.html" with heading="Inventory" show_search=True %}
+<p class="mt-2 flex flex-wrap gap-3 text-sm">
+  <a class="text-brand-700" href="{% url 'inventory:low_stock' %}">Low stock</a>
+  <a class="text-brand-700" href="{% url 'inventory:transactions' %}">Transactions</a>
+  <a class="text-brand-700" href="{% url 'inventory:adjust' %}">Adjust stock</a>
+  <a class="text-brand-700" href="{% url 'inventory:warehouse_list' %}">Warehouses</a>
+</p>
+<form method="get" class="mt-3 flex flex-wrap gap-3">
+  <select name="warehouse" onchange="this.form.submit()" class="rounded-lg border px-3 py-2 text-sm">
+    <option value="">All warehouses</option>
+    {% for wh in warehouses %}
+      <option value="{{ wh.pk }}" {% if warehouse_filter == wh.pk|stringformat:"s" %}selected{% endif %}>{{ wh }}</option>
+    {% endfor %}
+  </select>
+  <select name="status" onchange="this.form.submit()" class="rounded-lg border px-3 py-2 text-sm">
+    <option value="">All stock levels</option>
+    <option value="low" {% if status_filter == 'low' %}selected{% endif %}>Low stock</option>
+    <option value="out" {% if status_filter == 'out' %}selected{% endif %}>Out of stock</option>
+  </select>
+  {% if request.GET.q %}<input type="hidden" name="q" value="{{ request.GET.q }}">{% endif %}
+</form>
+<div class="mt-4 overflow-x-auto rounded-2xl border bg-white">
+  <table class="min-w-full text-sm">
+    <thead class="bg-slate-50 text-left">
+      <tr>
+        <th class="px-4 py-3">Product</th>
+        <th class="px-4 py-3">SKU</th>
+        <th class="px-4 py-3">Barcode</th>
+        <th class="px-4 py-3">Warehouse</th>
+        <th class="px-4 py-3">Current</th>
+        <th class="px-4 py-3">Reserved</th>
+        <th class="px-4 py-3">Available</th>
+        <th class="px-4 py-3">Incoming</th>
+        <th class="px-4 py-3">Sold</th>
+        <th class="px-4 py-3">Returned</th>
+        <th class="px-4 py-3">Damaged</th>
+        <th class="px-4 py-3">Min stock</th>
+        <th class="px-4 py-3">Status</th>
+        <th class="px-4 py-3 text-right">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in inventory_rows %}
+        {% with inv=row.inv health=row.health %}
+          <tr class="border-t {% if health == 'out' %}bg-red-50/70{% elif health == 'low' %}bg-amber-50/70{% endif %}">
+            <td class="px-4 py-3 font-medium">{{ inv.product.name }}</td>
+            <td class="px-4 py-3 text-slate-500">{{ inv.product.sku }}</td>
+            <td class="px-4 py-3 font-mono text-xs">{{ inv.product.barcode }}</td>
+            <td class="px-4 py-3">{{ inv.warehouse }}</td>
+            <td class="px-4 py-3">{{ inv.current_stock }}</td>
+            <td class="px-4 py-3">{{ inv.reserved_stock }}</td>
+            <td class="px-4 py-3 font-semibold {% if health == 'out' %}text-red-700{% elif health == 'low' %}text-amber-700{% else %}text-emerald-700{% endif %}">
+              {{ inv.available_stock }}
+            </td>
+            <td class="px-4 py-3">{{ inv.incoming_stock }}</td>
+            <td class="px-4 py-3">{{ inv.sold_quantity }}</td>
+            <td class="px-4 py-3">{{ inv.returned_quantity }}</td>
+            <td class="px-4 py-3">{{ inv.damaged_quantity }}</td>
+            <td class="px-4 py-3">
+              {% if staff_can_write %}
+              <form method="post" action="{% url 'inventory:min_stock' %}" class="flex items-center gap-2">
+                {% csrf_token %}
+                {{ row.min_form.product }}
+                {{ row.min_form.min_stock_level }}
+                <button class="rounded border px-2 py-1 text-xs">Save</button>
+              </form>
+              {% else %}
+                {{ inv.product.min_stock_level }}
+              {% endif %}
+            </td>
+            <td class="px-4 py-3">
+              {% if health == 'out' %}
+                <span class="rounded-full bg-red-100 px-2 py-0.5 text-xs text-red-700">Out of stock</span>
+              {% elif health == 'low' %}
+                <span class="rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800">Low (min {{ inv.product.min_stock_level }})</span>
+              {% else %}
+                <span class="rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-700">Healthy</span>
+              {% endif %}
+            </td>
+            <td class="px-4 py-3">
+              {% url 'products:detail' inv.product.pk as inv_view %}
+              {% url 'products:update' inv.product.pk as inv_edit %}
+              {% url 'inventory:adjust' as inv_adjust %}
+              {% include "components/table_actions.html" with view_url=inv_view edit_url=inv_edit %}
+            </td>
+          </tr>
+        {% endwith %}
+      {% empty %}
+        <tr><td class="px-4 py-6 text-slate-500" colspan="14">No inventory rows yet. Receive a GRN or record a stock adjustment for the warehouse you want to stock.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% include "components/pagination.html" %}
+{% endblock %}

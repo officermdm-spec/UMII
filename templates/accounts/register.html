@@ -1,0 +1,18 @@
+{% extends "accounts/auth_base.html" %}
+{% block store_title %}Register{% endblock %}
+{% block auth_heading %}Create your account{% endblock %}
+{% block auth_content %}
+<form method="post" class="space-y-4">
+  {% csrf_token %}
+  {{ form.non_field_errors }}
+  {% for field in form %}
+    <div>
+      <label class="text-sm font-medium">{{ field.label }}</label>
+      {{ field }}
+      {{ field.errors }}
+    </div>
+  {% endfor %}
+  <button class="w-full rounded-lg bg-brand-600 py-2 text-white">Register</button>
+</form>
+<p class="mt-4 text-sm">Already have an account? <a class="text-brand-700" href="{% url 'customers:login' %}">Login</a></p>
+{% endblock %}

@@ -1,0 +1,46 @@
+{% extends "staff/base.html" %}
+{% block staff_title %}Product offers{% endblock %}
+{% block content %}
+{% include "components/staff_header.html" with heading="Promotions" create_url="/staff/promotions/offers/add/" %}
+{% include "components/promotions_nav.html" %}
+<p class="mt-2 text-sm text-slate-500">Timed sales on products. After the end date the offer stops automatically.</p>
+<div class="mt-4 overflow-x-auto rounded-2xl border bg-white">
+  <table class="min-w-full text-sm">
+    <thead class="bg-slate-50 text-left">
+      <tr>
+        <th class="px-4 py-3">Offer name</th>
+        <th class="px-4 py-3">Discount</th>
+        <th class="px-4 py-3">Products</th>
+        <th class="px-4 py-3">Start</th>
+        <th class="px-4 py-3">End</th>
+        <th class="px-4 py-3">Status</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for offer in offers %}
+        <tr class="border-t">
+          <td class="px-4 py-3 font-medium">{{ offer.name }}</td>
+          <td class="px-4 py-3">{{ offer.discount_label }}</td>
+          <td class="px-4 py-3 text-slate-600">
+            {% with picked=offer.products.all %}
+              {% if picked %}{{ picked|join:", " }}{% else %}—{% endif %}
+            {% endwith %}
+          </td>
+          <td class="px-4 py-3 whitespace-nowrap">{{ offer.start_date|date:"d M Y H:i" }}</td>
+          <td class="px-4 py-3 whitespace-nowrap">{{ offer.end_date|date:"d M Y H:i" }}</td>
+          <td class="px-4 py-3">{% include "components/status_badge.html" with status=offer.lifecycle %}</td>
+          <td class="px-4 py-3">
+            {% url 'promotions:offer_update' offer.pk as offer_edit %}
+            {% url 'promotions:offer_delete' offer.pk as offer_delete %}
+            {% include "components/table_actions.html" with view_url=offer_edit edit_url=offer_edit delete_url=offer_delete %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td class="px-4 py-6 text-slate-500" colspan="7">No product offers yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% include "components/pagination.html" %}
+{% endblock %}

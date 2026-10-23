@@ -1,0 +1,26 @@
+{% extends "staff/base.html" %}
+{% block staff_title %}{{ return_request.return_number }}{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-semibold">{{ return_request.return_number }}</h1>
+<p class="text-sm text-slate-500">{{ return_request.order.order_number }} · {{ return_request.reason }}</p>
+<ul class="mt-4 space-y-2 rounded-2xl border bg-white p-4 text-sm">
+  {% for item in return_request.items.all %}
+    <li>{{ item.quantity }} × {{ item.order_item.product_name }}</li>
+  {% endfor %}
+</ul>
+<form method="post" action="{% url 'returns_staff:process' return_request.pk %}" class="mt-4 space-y-3 rounded-2xl border bg-white p-5">
+  {% csrf_token %}
+  {% for item in return_request.items.all %}
+    <label class="block text-sm">Condition for {{ item.order_item.product_name }}
+      <select name="condition_{{ item.pk }}" class="mt-1 block rounded-lg border px-3 py-2">
+        {% for value,label in conditions %}
+          <option value="{{ value }}" {% if item.condition == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+  {% endfor %}
+  <div><label class="text-sm font-medium">Status</label>{{ form.status }}</div>
+  <div><label class="text-sm font-medium">Staff notes</label>{{ form.staff_notes }}</div>
+  <button class="rounded-lg bg-brand-600 px-4 py-2 text-white">Update return</button>
+</form>
+{% endblock %}

@@ -1,0 +1,106 @@
+{% extends "staff/base.html" %}
+{% block staff_title %}{{ grn.grn_number }}{% endblock %}
+{% block content %}
+<div class="flex flex-wrap items-center justify-between gap-3">
+  <div>
+    <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Voucher</p>
+    <h1 class="text-2xl font-semibold">{{ grn.grn_number }}</h1>
+    <p class="text-sm text-slate-500">{{ grn.vendor }} · {{ grn.warehouse }} · {{ grn.grn_date }}</p>
+  </div>
+  <div class="flex flex-wrap items-center gap-2">
+    {% include "components/status_badge.html" with status=grn.status %}
+    <a class="rounded-lg border px-3 py-2 text-sm" href="{% url 'purchases:list' %}">All vouchers</a>
+  </div>
+</div>
+
+<div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+  <div class="rounded-2xl border bg-white px-4 py-3">
+    <p class="text-xs text-slate-500">Invoice number</p>
+    <p class="mt-1 text-sm font-medium">{{ grn.invoice_number|default:"—" }}</p>
+  </div>
+  <div class="rounded-2xl border bg-white px-4 py-3">
+    <p class="text-xs text-slate-500">Received by</p>
+    <p class="mt-1 text-sm font-medium">{{ grn.received_by|default:"—" }}</p>
+  </div>
+  <div class="rounded-2xl border bg-white px-4 py-3">
+    <p class="text-xs text-slate-500">Approved by</p>
+    <p class="mt-1 text-sm font-medium">{{ grn.approved_by|default:"—" }}</p>
+  </div>
+  <div class="rounded-2xl border bg-white px-4 py-3">
+    <p class="text-xs text-slate-500">Grand total</p>
+    <p class="mt-1 text-sm font-medium">{{ grn.grand_total }}</p>
+  </div>
+</div>
+
+<div class="mt-4 overflow-x-auto rounded-2xl border bg-white">
+  <table class="min-w-full text-sm">
+    <thead class="bg-slate-50 text-left">
+      <tr>
+        <th class="px-4 py-3">Item name</th>
+        <th class="px-4 py-3">SKU</th>
+        <th class="px-4 py-3">Qty</th>
+        <th class="px-4 py-3">Purchase rate</th>
+        <th class="px-4 py-3">Avg cost after</th>
+        <th class="px-4 py-3">Batch number</th>
+        <th class="px-4 py-3">Expiry date</th>
+        <th class="px-4 py-3">Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in grn.items.all %}
+        <tr class="border-t">
+          <td class="px-4 py-3">{{ item.product.name }}</td>
+          <td class="px-4 py-3">{{ item.product.sku }}</td>
+          <td class="px-4 py-3">{{ item.quantity }}</td>
+          <td class="px-4 py-3">{{ item.purchase_rate }}</td>
+          <td class="px-4 py-3">{{ item.average_cost_after|default:"—" }}</td>
+          <td class="px-4 py-3">{{ item.batch_number|default:"—" }}</td>
+          <td class="px-4 py-3">{{ item.expiry_date|default:"—" }}</td>
+          <td class="px-4 py-3">{{ item.line_total }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="mt-4 flex flex-wrap items-center gap-3">
+  {% if grn.can_edit %}
+    <a class="rounded-lg border px-3 py-2 text-sm" href="{% url 'purchases:update' grn.pk %}">Edit</a>
+    <a class="rounded-lg border border-red-200 px-3 py-2 text-sm text-red-600" href="{% url 'purchases:delete' grn.pk %}">Delete</a>
+    <form method="post" action="{% url 'purchases:approve' grn.pk %}">
+      {% csrf_token %}
+      <button class="rounded-lg bg-emerald-600 px-3 py-2 text-sm text-white">Approve GRN</button>
+    </form>
+  {% elif grn.status == "approved" and can_unapprove %}
+    <button type="button" class="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900" data-open-unapprove>
+      Unapprove
+    </button>
+    <dialog id="unapprove-dialog" class="w-full max-w-md rounded-2xl border bg-white p-5 shadow-lg">
+      <p class="font-semibold">Unapprove this GRN?</p>
+      <p class="mt-2 text-sm text-slate-600">Are you sure you want to unapprove this GRN? This will revert inventory changes / allow editing again.</p>
+      <form method="post" action="{% url 'purchases:unapprove' grn.pk %}" class="mt-4 flex flex-wrap gap-2">
+        {% csrf_token %}
+        <button class="rounded-lg bg-amber-600 px-3 py-2 text-sm text-white">Unapprove</button>
+        <button type="button" class="rounded-lg border px-3 py-2 text-sm" data-close-unapprove>Cancel</button>
+      </form>
+    </dialog>
+  {% elif grn.status == "approved" %}
+    <p class="text-sm text-slate-500">This voucher is approved and locked.</p>
+  {% else %}
+    <p class="text-sm text-slate-500">This voucher is {{ grn.get_status_display|lower }}, so it cannot be edited or deleted.</p>
+  {% endif %}
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+(function () {
+  var dialog = document.getElementById("unapprove-dialog");
+  document.querySelector("[data-open-unapprove]")?.addEventListener("click", function () {
+    dialog?.showModal();
+  });
+  document.querySelector("[data-close-unapprove]")?.addEventListener("click", function () {
+    dialog?.close();
+  });
+})();
+</script>
+{% endblock %}

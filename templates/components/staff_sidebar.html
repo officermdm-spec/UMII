@@ -1,0 +1,22 @@
+<div id="staff-sidebar-backdrop" class="staff-sidebar-backdrop" hidden></div>
+<aside id="staff-sidebar" class="staff-sidebar" aria-label="Staff navigation">
+  <div class="flex items-center justify-between px-5 py-5">
+    <div>
+      <a href="{% url 'store:home' %}" class="inline-flex rounded-xl bg-white px-2 py-1.5">
+        {% include "components/brand_logo.html" with logo_class="h-8 w-auto max-w-[140px] object-contain" %}
+      </a>
+      <p class="mt-2 text-xs font-medium uppercase tracking-wide text-sky-100/80">Staff</p>
+    </div>
+    <button type="button" class="no-print rounded-lg px-2 py-1 text-white lg:hidden" data-sidebar-close aria-label="Close menu">✕</button>
+  </div>
+  <nav class="space-y-1 px-3 pb-8 text-sm">
+    {% for item in staff_nav_modules %}
+      <a href="{% url item.url_name %}"
+         class="block rounded-lg px-3 py-2 hover:bg-white/10 {% if item.is_active %}bg-white/15 text-white{% endif %}">
+        {{ item.label }}
+      </a>
+    {% empty %}
+      <p class="px-3 text-sky-200/80">No modules assigned.</p>
+    {% endfor %}
+  </nav>
+</aside>

@@ -1,0 +1,27 @@
+{% extends "staff/base.html" %}
+{% block staff_title %}Brands{% endblock %}
+{% block content %}
+{% include "components/staff_header.html" with heading="Brands" create_url="/staff/products/brands/add/" show_search=True %}
+<div class="mt-4 overflow-x-auto rounded-2xl border bg-white">
+  <table class="min-w-full text-sm">
+    <thead class="bg-slate-50 text-left"><tr><th class="px-4 py-3">Name</th><th class="px-4 py-3">Slug</th><th class="px-4 py-3">Active</th><th class="px-4 py-3 text-right">Actions</th></tr></thead>
+    <tbody>
+      {% for brand in brands %}
+        <tr class="border-t">
+          <td class="px-4 py-3">{{ brand.name }}</td>
+          <td class="px-4 py-3">{{ brand.slug }}</td>
+          <td class="px-4 py-3">{{ brand.is_active }}</td>
+          <td class="px-4 py-3">
+            {% url 'products:brand_update' brand.pk as brand_edit %}
+            {% url 'products:brand_delete' brand.pk as brand_delete %}
+            {% include "components/table_actions.html" with view_url=brand_edit edit_url=brand_edit delete_url=brand_delete %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td class="px-4 py-6 text-slate-500" colspan="4">No brands yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% include "components/pagination.html" %}
+{% endblock %}

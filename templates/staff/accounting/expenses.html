@@ -1,0 +1,32 @@
+{% extends "staff/base.html" %}
+{% block staff_title %}Expenses{% endblock %}
+{% block content %}
+{% include "components/staff_header.html" with heading="Expenses" create_url="/staff/accounting/expenses/add/" show_search=True %}
+{% include "components/accounting_nav.html" %}
+{% include "components/date_filter.html" %}
+<p class="mt-3 text-sm text-slate-500">Total: {{ total }}</p>
+<div class="mt-4 overflow-x-auto rounded-2xl border bg-white">
+  <table class="min-w-full text-sm">
+    <thead class="bg-slate-50 text-left"><tr><th class="px-4 py-3">Date</th><th class="px-4 py-3">Title</th><th class="px-4 py-3">Category</th><th class="px-4 py-3">Amount</th><th class="px-4 py-3">Account</th><th class="px-4 py-3 text-right">Actions</th></tr></thead>
+    <tbody>
+      {% for row in expenses %}
+        <tr class="border-t">
+          <td class="px-4 py-3">{{ row.date }}</td>
+          <td class="px-4 py-3">{{ row.title }}</td>
+          <td class="px-4 py-3">{{ row.get_category_display }}</td>
+          <td class="px-4 py-3">{{ row.amount }}</td>
+          <td class="px-4 py-3">{{ row.payment_account }}</td>
+          <td class="px-4 py-3">
+            {% url 'accounting:expense_update' row.pk as exp_edit %}
+            {% url 'accounting:expense_delete' row.pk as exp_delete %}
+            {% include "components/table_actions.html" with view_url=exp_edit edit_url=exp_edit delete_url=exp_delete %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td class="px-4 py-6 text-slate-500" colspan="6">No expenses in this range.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% include "components/pagination.html" %}
+{% endblock %}

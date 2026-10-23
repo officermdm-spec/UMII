@@ -1,0 +1,34 @@
+{% extends "staff/base.html" %}
+{% block staff_title %}Returns{% endblock %}
+{% block content %}
+{% include "components/staff_header.html" with heading="Returns" %}
+<div class="mt-4 overflow-x-auto rounded-2xl border bg-white">
+  <table class="min-w-full text-sm">
+    <thead class="bg-slate-50 text-left"><tr><th class="px-4 py-3">Return</th><th class="px-4 py-3">Order</th><th class="px-4 py-3">Customer</th><th class="px-4 py-3">Status</th><th class="px-4 py-3 text-right">Actions</th></tr></thead>
+    <tbody>
+      {% for ret in returns %}
+        <tr class="border-t">
+          <td class="px-4 py-3"><a class="text-brand-700" href="{% url 'returns_staff:detail' ret.pk %}">{{ ret.return_number }}</a></td>
+          <td class="px-4 py-3">{{ ret.order.order_number }}</td>
+          <td class="px-4 py-3">{{ ret.customer }}</td>
+          <td class="px-4 py-3">{% include "components/status_badge.html" with status=ret.status %}</td>
+          <td class="px-4 py-3">
+            <div class="table-actions flex flex-wrap justify-end gap-2">
+              <a class="rounded-lg border px-3 py-1.5 text-xs font-medium text-brand-700" href="{% url 'returns_staff:detail' ret.pk %}">View</a>
+              {% if staff_can_write %}
+                <a class="rounded-lg border px-3 py-1.5 text-xs font-medium text-slate-700" href="{% url 'returns_staff:detail' ret.pk %}">Edit</a>
+                {% if ret.status == 'requested' %}
+                  <a class="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600" href="{% url 'returns_staff:delete' ret.pk %}">Delete</a>
+                {% endif %}
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td class="px-4 py-6 text-slate-500" colspan="5">No returns yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% include "components/pagination.html" %}
+{% endblock %}

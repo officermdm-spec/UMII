@@ -1,0 +1,17 @@
+{% extends "staff/base.html" %}
+{% block staff_title %}Record vendor payment{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-semibold">Record vendor payment</h1>
+{% include "components/accounting_nav.html" %}
+<form method="post" class="mt-4 max-w-xl space-y-3 rounded-2xl border bg-white p-5">
+  {% csrf_token %}
+  {{ form.non_field_errors }}
+  {% for field in form %}
+    <div><label class="text-sm font-medium">{{ field.label }}</label>{{ field }}{{ field.errors }}</div>
+  {% endfor %}
+  <div class="no-print flex gap-3">
+    <button class="rounded-lg bg-brand-600 px-4 py-2 text-white">Post payment</button>
+    <a class="rounded-lg border px-4 py-2" href="{% url 'vendor_payments:list' %}">Cancel</a>
+  </div>
+</form>
+{% endblock %}

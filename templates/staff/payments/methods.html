@@ -1,0 +1,26 @@
+{% extends "staff/base.html" %}
+{% block staff_title %}Payment methods{% endblock %}
+{% block content %}
+{% include "components/staff_header.html" with heading="Payment methods" create_url="/staff/payments/methods/add/" %}
+<div class="mt-4 overflow-x-auto rounded-2xl border bg-white">
+  <table class="min-w-full text-sm">
+    <thead class="bg-slate-50 text-left"><tr><th class="px-4 py-3">Name</th><th class="px-4 py-3">Code</th><th class="px-4 py-3">Status</th><th class="px-4 py-3 text-right">Actions</th></tr></thead>
+    <tbody>
+      {% for m in methods %}
+        <tr class="border-t">
+          <td class="px-4 py-3 font-medium">{{ m.name }}</td>
+          <td class="px-4 py-3">{{ m.code }}</td>
+          <td class="px-4 py-3">{% if m.is_active %}Active{% else %}Inactive{% endif %}</td>
+          <td class="px-4 py-3">
+            {% url 'payments:method_update' m.pk as m_edit %}
+            {% url 'payments:method_delete' m.pk as m_delete %}
+            {% include "components/table_actions.html" with view_url=m_edit edit_url=m_edit delete_url=m_delete %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td class="px-4 py-6 text-slate-500" colspan="4">No payment methods yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

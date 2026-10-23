@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}{% block store_title %}FP Mart{% endblock %}{% endblock %}
+{% block body %}
+{% include "components/navbar.html" %}
+<main class="store-main mx-auto min-h-[72vh] max-w-7xl px-4 py-7 sm:px-6 sm:py-9 lg:px-8">
+  {% include "components/alerts.html" %}
+  {% block content %}{% endblock %}
+</main>
+{% include "components/footer.html" %}
+{% include "components/whatsapp_button.html" %}
+{% endblock %}

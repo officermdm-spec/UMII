@@ -1,0 +1,17 @@
+{% if status == 'pending' %}<span class="rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800">Pending</span>
+{% elif status == 'cod_pending' %}<span class="rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800">COD Pending</span>
+{% elif status == 'confirmed' %}<span class="rounded-full bg-sky-100 px-2 py-0.5 text-xs text-sky-800">Confirmed</span>
+{% elif status == 'processing' %}<span class="rounded-full bg-indigo-100 px-2 py-0.5 text-xs text-indigo-800">Processing</span>
+{% elif status == 'in_progress' %}<span class="rounded-full bg-indigo-100 px-2 py-0.5 text-xs text-indigo-800">In Progress</span>
+{% elif status == 'on_way' %}<span class="rounded-full bg-violet-100 px-2 py-0.5 text-xs text-violet-800">On Way</span>
+{% elif status == 'delivered' or status == 'completed' or status == 'paid' or status == 'approved' or status == 'received' %}<span class="rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-800">{% if status == 'paid' %}Paid{% elif status == 'delivered' %}Delivered{% elif status == 'received' %}Received{% else %}{{ status|title }}{% endif %}</span>
+{% elif status == 'return_requested' %}<span class="rounded-full bg-orange-100 px-2 py-0.5 text-xs text-orange-800">Return Requested</span>
+{% elif status == 'returned' %}<span class="rounded-full bg-slate-200 px-2 py-0.5 text-xs text-slate-700">Returned</span>
+{% elif status == 'refunded' %}<span class="rounded-full bg-slate-200 px-2 py-0.5 text-xs text-slate-700">Refunded</span>
+{% elif status == 'new' or status == 'scheduled' %}<span class="rounded-full bg-sky-100 px-2 py-0.5 text-xs text-sky-800">Scheduled</span>
+{% elif status == 'active' or status == 'live' %}<span class="rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-800">Active</span>
+{% elif status == 'in_review' %}<span class="rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800">In review</span>
+{% elif status == 'replied' %}<span class="rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-800">Replied</span>
+{% elif status == 'closed' or status == 'expired' or status == 'exhausted' or status == 'off' or status == 'disabled' %}<span class="rounded-full bg-slate-200 px-2 py-0.5 text-xs text-slate-700">{% if status == 'exhausted' %}Limit reached{% elif status == 'off' or status == 'disabled' %}Disabled{% elif status == 'expired' %}Expired{% else %}{{ status|title }}{% endif %}</span>
+{% elif status == 'cancelled' or status == 'rejected' or status == 'failed' %}<span class="rounded-full bg-red-100 px-2 py-0.5 text-xs text-red-800">{{ status|title }}</span>
+{% else %}<span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-700">{{ status|title }}</span>{% endif %}

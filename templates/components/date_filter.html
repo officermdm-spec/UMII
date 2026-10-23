@@ -1,0 +1,20 @@
+<form method="get" class="no-print mt-4 flex flex-wrap items-end gap-3 text-sm">
+  <label>Range
+    <select name="range" class="mt-1 block rounded-lg border px-3 py-2" onchange="this.form.submit()">
+      <option value="today" {% if range_preset == 'today' %}selected{% endif %}>Today</option>
+      <option value="yesterday" {% if range_preset == 'yesterday' %}selected{% endif %}>Yesterday</option>
+      <option value="this_week" {% if range_preset == 'this_week' %}selected{% endif %}>This week</option>
+      <option value="this_month" {% if range_preset == 'this_month' %}selected{% endif %}>This month</option>
+      <option value="previous_month" {% if range_preset == 'previous_month' %}selected{% endif %}>Previous month</option>
+      <option value="custom" {% if range_preset == 'custom' %}selected{% endif %}>Custom</option>
+    </select>
+  </label>
+  <label>From
+    <input type="date" name="start" value="{{ range_start|date:'Y-m-d' }}" class="mt-1 block rounded-lg border px-3 py-2">
+  </label>
+  <label>To
+    <input type="date" name="end" value="{{ range_end|date:'Y-m-d' }}" class="mt-1 block rounded-lg border px-3 py-2">
+  </label>
+  {% if request.GET.q %}<input type="hidden" name="q" value="{{ request.GET.q }}">{% endif %}
+  <button class="rounded-lg bg-brand-600 px-3 py-2 text-white">Apply</button>
+</form>

@@ -1,0 +1,32 @@
+{% extends "staff/base.html" %}
+{% block staff_title %}Purchases{% endblock %}
+{% block content %}
+<div class="flex flex-wrap items-center justify-between gap-3">
+  <h1 class="text-2xl font-semibold">Purchases</h1>
+  {% include "components/print_button.html" %}
+</div>
+{% include "components/accounting_nav.html" %}
+{% include "components/date_filter.html" %}
+<div class="mt-4 overflow-x-auto rounded-2xl border bg-white">
+  <table class="min-w-full text-sm">
+    <thead class="bg-slate-50 text-left"><tr><th class="px-4 py-3">GRN</th><th class="px-4 py-3">Vendor</th><th class="px-4 py-3">Warehouse</th><th class="px-4 py-3">Total</th><th class="px-4 py-3 text-right">Actions</th></tr></thead>
+    <tbody>
+      {% for grn in grns %}
+        <tr class="border-t">
+          <td class="px-4 py-3">{{ grn.grn_number }}</td>
+          <td class="px-4 py-3">{{ grn.vendor }}</td>
+          <td class="px-4 py-3">{{ grn.warehouse }}</td>
+          <td class="px-4 py-3">{{ grn.grand_total }}</td>
+          <td class="px-4 py-3">
+            {% url 'purchases:detail' grn.pk as grn_view %}
+            {% include "components/table_actions.html" with view_url=grn_view %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td class="px-4 py-6 text-slate-500" colspan="5">No approved purchases in this range.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% include "components/pagination.html" %}
+{% endblock %}

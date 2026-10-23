@@ -1,0 +1,15 @@
+{% extends "customers/base.html" %}
+{% block store_title %}Returns{% endblock %}
+{% block account_content %}
+<h1 class="text-2xl font-semibold">Returns</h1>
+<div class="mt-4 divide-y rounded-2xl border bg-white">
+  {% for ret in returns %}
+    <a class="flex items-center justify-between px-4 py-3 text-sm" href="{% url 'returns_customer:detail' ret.pk %}">
+      <span>{{ ret.return_number }} · {{ ret.order.order_number }}</span>
+      {% include "components/status_badge.html" with status=ret.status %}
+    </a>
+  {% empty %}
+    <p class="p-4 text-sm text-slate-500">No return requests.</p>
+  {% endfor %}
+</div>
+{% endblock %}

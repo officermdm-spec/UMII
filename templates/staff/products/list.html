@@ -1,0 +1,40 @@
+{% extends "staff/base.html" %}
+{% block staff_title %}Products{% endblock %}
+{% block content %}
+{% include "components/staff_header.html" with heading="Products" create_url="/staff/products/add/" show_search=True %}
+<p class="no-print mt-2 text-sm"><a class="text-brand-700" href="{% url 'products:brand_list' %}">Manage brands</a></p>
+<div class="mt-4 overflow-x-auto rounded-2xl border bg-white">
+  <table class="min-w-full text-sm">
+    <thead class="bg-slate-50 text-left"><tr><th class="px-4 py-3">SKU</th><th class="px-4 py-3">Barcode</th><th class="px-4 py-3">Name</th><th class="px-4 py-3">Category</th><th class="px-4 py-3">Price</th><th class="px-4 py-3">Discount</th><th class="px-4 py-3">Stock</th><th class="px-4 py-3 text-right">Actions</th></tr></thead>
+    <tbody>
+      {% for p in products %}
+        <tr class="border-t">
+          <td class="px-4 py-3">{{ p.sku }}</td>
+          <td class="px-4 py-3 font-mono text-xs">{{ p.barcode }}</td>
+          <td class="px-4 py-3">{{ p.name }}</td>
+          <td class="px-4 py-3">{{ p.category }}</td>
+          <td class="px-4 py-3">
+            {% if p.has_discount %}
+              <span class="font-medium">{{ p.effective_price }}</span>
+              <span class="ml-1 text-xs text-slate-400 line-through">{{ p.selling_price }}</span>
+            {% else %}
+              {{ p.selling_price }}
+            {% endif %}
+          </td>
+          <td class="px-4 py-3">{% if p.has_discount %}<span class="text-rose-600">{{ p.discount_percent }}%</span>{% else %}—{% endif %}</td>
+          <td class="px-4 py-3">{{ p.stock_quantity }}</td>
+          <td class="px-4 py-3">
+            {% url 'products:detail' p.pk as p_view %}
+            {% url 'products:update' p.pk as p_edit %}
+            {% url 'products:delete' p.pk as p_delete %}
+            {% include "components/table_actions.html" with view_url=p_view edit_url=p_edit delete_url=p_delete %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td class="px-4 py-6 text-slate-500" colspan="8">No products yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% include "components/pagination.html" %}
+{% endblock %}

@@ -1,0 +1,25 @@
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+.env
+# Keep payment/return uploads off git. Product photos must ship with the
+# deploy because Render's disk is wiped on every restart.
+/media/*
+!/media/.gitkeep
+!/media/products/
+/media/products/*
+!/media/products/gallery/
+!/media/products/gallery/**
+!/media/products/main/
+!/media/products/main/**
+staticfiles/
+*.log
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+*.egg-info/
+.pytest_cache/
+htmlcov/
+.coverage

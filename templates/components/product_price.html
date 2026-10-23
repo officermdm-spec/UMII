@@ -1,0 +1,25 @@
+{% load humanize %}
+{# Expects `product`. Optional: `size` = sm|md|lg #}
+{% if product.has_discount %}
+  <div class="flex flex-wrap items-end gap-2 {% if size == 'lg' %}gap-3{% endif %}">
+    <span class="{% if size == 'lg' %}text-3xl{% elif size == 'sm' %}text-base{% else %}text-lg{% endif %} font-bold text-brand-700">
+      {{ currency }} {{ product.effective_price|intcomma }}
+    </span>
+    <span class="{% if size == 'lg' %}text-lg{% else %}text-sm{% endif %} font-medium text-slate-400 line-through decoration-slate-400">
+      {{ currency }} {{ product.selling_price|intcomma }}
+    </span>
+    <span class="rounded-full bg-rose-100 px-2 py-0.5 text-[11px] font-semibold text-rose-700">
+      {{ product.offer_badge|default:"Sale" }}
+    </span>
+  </div>
+  {% if size == 'lg' %}
+    <p class="mt-2 text-sm text-slate-500">
+      You save {{ currency }} {{ product.discount_amount|intcomma }}
+      · Net payable {{ currency }} {{ product.effective_price|intcomma }}
+    </p>
+  {% endif %}
+{% else %}
+  <span class="{% if size == 'lg' %}text-3xl font-bold text-brand-700{% elif size == 'sm' %}text-base font-bold text-slate-900{% else %}text-lg font-bold text-slate-900{% endif %}">
+    {{ currency }} {{ product.selling_price|intcomma }}
+  </span>
+{% endif %}

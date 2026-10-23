@@ -1,0 +1,33 @@
+{% extends "staff/base.html" %}
+{% block staff_title %}Accounting{% endblock %}
+{% block content %}
+<div class="flex flex-wrap items-center justify-between gap-3">
+  <h1 class="text-2xl font-semibold">Accounting</h1>
+  {% include "components/print_button.html" %}
+</div>
+{% include "components/accounting_nav.html" %}
+{% include "components/date_filter.html" %}
+<div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+  {% for label, value in today_cards %}
+  {% endfor %}
+  <div class="rounded-2xl border bg-white p-4"><p class="text-xs text-slate-500">Today's sales</p><p class="mt-1 text-lg font-semibold">{{ today_totals.net_sales }}</p></div>
+  <div class="rounded-2xl border bg-white p-4"><p class="text-xs text-slate-500">Today's COGS</p><p class="mt-1 text-lg font-semibold">{{ today_totals.cogs }}</p></div>
+  <div class="rounded-2xl border bg-white p-4"><p class="text-xs text-slate-500">Today's gross profit</p><p class="mt-1 text-lg font-semibold">{{ today_totals.gross_profit }}</p></div>
+  <div class="rounded-2xl border bg-white p-4"><p class="text-xs text-slate-500">Today's expenses</p><p class="mt-1 text-lg font-semibold">{{ today_totals.expenses }}</p></div>
+  <div class="rounded-2xl border bg-white p-4"><p class="text-xs text-slate-500">Today's net profit</p><p class="mt-1 text-lg font-semibold">{{ today_totals.net_profit }}</p></div>
+</div>
+<div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+  <div class="rounded-2xl border bg-white p-4"><p class="text-xs text-slate-500">Total sales</p><p class="mt-1 text-lg font-semibold">{{ totals.net_sales }}</p></div>
+  <div class="rounded-2xl border bg-white p-4"><p class="text-xs text-slate-500">Total COGS</p><p class="mt-1 text-lg font-semibold">{{ totals.cogs }}</p></div>
+  <div class="rounded-2xl border bg-white p-4"><p class="text-xs text-slate-500">Gross profit</p><p class="mt-1 text-lg font-semibold">{{ totals.gross_profit }}</p></div>
+  <div class="rounded-2xl border bg-white p-4"><p class="text-xs text-slate-500">Expenses</p><p class="mt-1 text-lg font-semibold">{{ totals.expenses }}</p></div>
+  <div class="rounded-2xl border bg-white p-4"><p class="text-xs text-slate-500">Net profit</p><p class="mt-1 text-lg font-semibold">{{ totals.net_profit }}</p></div>
+  <div class="rounded-2xl border bg-white p-4"><p class="text-xs text-slate-500">Sales returns</p><p class="mt-1 text-lg font-semibold">{{ totals.sales_returns }}</p></div>
+  <div class="rounded-2xl border bg-white p-4"><p class="text-xs text-slate-500">Receivables</p><p class="mt-1 text-lg font-semibold">{{ totals.receivables }}</p></div>
+  <div class="rounded-2xl border bg-white p-4"><p class="text-xs text-slate-500">Payables</p><p class="mt-1 text-lg font-semibold">{{ totals.payables }}</p></div>
+  <div class="rounded-2xl border bg-white p-4"><p class="text-xs text-slate-500">Cash</p><p class="mt-1 text-lg font-semibold">{{ totals.cash }}</p></div>
+  <div class="rounded-2xl border bg-white p-4"><p class="text-xs text-slate-500">Bank</p><p class="mt-1 text-lg font-semibold">{{ totals.bank }}</p></div>
+  <div class="rounded-2xl border bg-white p-4"><p class="text-xs text-slate-500">Inventory value (avg cost)</p><p class="mt-1 text-lg font-semibold">{{ inventory_value }}</p></div>
+</div>
+<p class="mt-4 text-xs text-slate-500">Figures come from posted journals. Historical orders from before this module are not backfilled.</p>
+{% endblock %}

@@ -1,0 +1,179 @@
+{% load humanize %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Invoice {{ invoice_number }}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    @page { size: 80mm auto; margin: 2mm; }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #fff;
+      color: #000;
+    }
+    body {
+      font-family: "Courier New", ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    .sheet {
+      width: 72mm;
+      max-width: 72mm;
+      margin: 0 auto;
+      padding: 2mm 0 8mm;
+      font-size: 12px;
+      line-height: 1.35;
+    }
+    .center { text-align: center; }
+    .right { text-align: right; }
+    h1 {
+      margin: 0;
+      font-size: 16px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .muted { font-size: 11px; }
+    .rule {
+      border: 0;
+      border-top: 1px dashed #000;
+      margin: 6px 0;
+    }
+    .rule-solid {
+      border: 0;
+      border-top: 1px solid #000;
+      margin: 6px 0;
+    }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 2px 0; vertical-align: top; }
+    th { font-size: 10px; text-transform: uppercase; text-align: left; }
+    .qty, .amt { text-align: right; white-space: nowrap; }
+    .items {
+      width: 100%;
+      table-layout: fixed;
+      border-collapse: collapse;
+    }
+    .items col.col-item { width: 48%; }
+    .items col.col-qty { width: 18%; }
+    .items col.col-amt { width: 34%; }
+    .items th, .items td {
+      vertical-align: top;
+      padding: 3px 0;
+    }
+    .items th.item, .items td.item-name {
+      width: 48%;
+      text-align: left;
+      padding-right: 4px;
+      word-break: break-word;
+    }
+    .items th.qty, .items td.qty {
+      width: 18%;
+      min-width: 9mm;
+      text-align: center;
+      white-space: nowrap;
+      padding-left: 3px;
+      padding-right: 4px;
+    }
+    .items th.amt, .items td.amt {
+      width: 34%;
+      min-width: 18mm;
+      text-align: right;
+      white-space: nowrap;
+      padding-left: 6px;
+    }
+    .item-name { word-break: break-word; }
+    .totals td { padding-top: 3px; }
+    .grand { font-weight: 700; font-size: 13px; }
+    .barcode {
+      margin-top: 8px;
+      letter-spacing: 0.18em;
+      font-weight: 700;
+    }
+    .no-print { margin: 12px auto; text-align: center; }
+    .no-print button, .no-print a {
+      display: inline-block;
+      margin: 0 4px;
+      padding: 8px 12px;
+      border: 1px solid #111;
+      background: #111;
+      color: #fff;
+      text-decoration: none;
+      font-family: inherit;
+      font-size: 13px;
+    }
+    .no-print a.ghost { background: #fff; color: #111; }
+    @media print {
+      .no-print { display: none !important; }
+      .sheet { width: 72mm; }
+    }
+  </style>
+</head>
+<body>
+  <div class="no-print">
+    <button type="button" onclick="window.print()">Print / 3-inch thermal</button>
+    <a class="ghost" href="javascript:history.back()">Back</a>
+  </div>
+  <div class="sheet">
+    <div class="center">
+      <h1>{{ site_name }}</h1>
+      {% if store_address %}<div class="muted">{{ store_address }}</div>{% endif %}
+      {% if store_phone %}<div class="muted">Tel: {{ store_phone }}</div>{% endif %}
+      <div class="muted">SALES INVOICE</div>
+    </div>
+    <hr class="rule">
+    <table>
+      <tr><td>Invoice</td><td class="right"><strong>{{ invoice_number }}</strong></td></tr>
+      <tr><td>Order</td><td class="right">{{ order.order_number }}</td></tr>
+      <tr><td>Date</td><td class="right">{% if order.invoiced_at %}{{ order.invoiced_at|date:"d/m/Y H:i" }}{% else %}{{ order.created_at|date:"d/m/Y H:i" }}{% endif %}</td></tr>
+      <tr><td>Cashier</td><td class="right">{{ request.user.get_username }}</td></tr>
+    </table>
+    <hr class="rule">
+    <div><strong>{{ order.shipping_full_name }}</strong></div>
+    <div class="muted">{{ order.shipping_phone }}</div>
+    <div class="muted">{{ order.shipping_address }}, {{ order.shipping_city }}{% if order.shipping_area %} {{ order.shipping_area }}{% endif %}</div>
+    <hr class="rule">
+    <table class="items">
+      <colgroup>
+        <col class="col-item">
+        <col class="col-qty">
+        <col class="col-amt">
+      </colgroup>
+      <thead>
+        <tr>
+          <th class="item">Item</th>
+          <th class="qty">Qty</th>
+          <th class="amt">Amt</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in order.items.all %}
+          <tr>
+            <td class="item-name">
+              {{ item.product_name }}
+              <div class="muted">{{ item.sku }} @ {{ item.unit_price|intcomma }}</div>
+              {% if item.has_promo %}<div class="muted">{{ order.coupon_code }} {{ item.promo_percent|floatformat:0 }}% off</div>{% endif %}
+            </td>
+            <td class="qty">{{ item.quantity }}</td>
+            <td class="amt">{{ item.total|intcomma }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <hr class="rule-solid">
+    <table class="totals">
+      <tr><td>Subtotal</td><td class="amt">{{ order.subtotal|intcomma }}</td></tr>
+      {% if order.discount %}<tr><td>Discount</td><td class="amt">-{{ order.discount|intcomma }}</td></tr>{% endif %}
+      {% if order.shipping_charge %}<tr><td>Delivery</td><td class="amt">{{ order.shipping_charge|intcomma }}</td></tr>{% endif %}
+      {% if order.tax %}<tr><td>Tax</td><td class="amt">{{ order.tax|intcomma }}</td></tr>{% endif %}
+      <tr class="grand"><td>TOTAL {{ currency }}</td><td class="amt">{{ order.grand_total|intcomma }}</td></tr>
+    </table>
+    <hr class="rule">
+    <div>Pay: {{ order.payment_method_code|upper }} · {{ order.get_payment_status_display }}</div>
+    <div>Status: {{ order.get_status_display }}</div>
+    {% if order.coupon_code %}<div>Coupon: {{ order.coupon_code }}</div>{% endif %}
+    <div class="center barcode">{{ invoice_number }}</div>
+    <p class="center muted">Thank you for shopping{% if site_name %} at {{ site_name }}{% endif %}.</p>
+    <p class="center muted">Goods once sold are returnable as per store policy.</p>
+  </div>
+</body>
+</html>
