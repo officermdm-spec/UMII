@@ -8,36 +8,117 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
+    const oliveTones = {
+      50: '#f3f6ef',
+      100: '#e7ebdc',
+      200: '#d3dcc0',
+      300: '#bac79d',
+      400: '#8ea06d',
+      500: '#768a5e',
+      600: '#55633F',
+      700: '#434f31',
+      800: '#2f3a27',
+      900: '#1f281d'
+    };
+    const clayTones = {
+      50: '#f8f4ef',
+      100: '#eee5dc',
+      200: '#ddcbbb',
+      300: '#c7aa93',
+      400: '#a98770',
+      500: '#80604e',
+      600: '#5C4034',
+      700: '#4b342d',
+      800: '#362923',
+      900: '#241b1a'
+    };
+    const neutralTones = {
+      50: '#f4f1e8',
+      100: '#eae6da',
+      200: '#DAD7C6',
+      300: '#c9c5b1',
+      400: '#a5a28d',
+      500: '#68734f',
+      600: '#55633F',
+      700: '#434f31',
+      800: '#344026',
+      900: '#26301f'
+    };
     tailwind.config = {
       theme: {
         extend: {
           fontFamily: { sans: ['Inter', 'ui-sans-serif', 'system-ui'] },
           colors: {
             brand: {
-              50: '#f0f7ff',
-              100: '#e0effe',
-              200: '#c7e0fd',
-              300: '#a8b8fc',
-              400: '#8b7cf8',
-              500: '#7a5af0',
-              600: '#6b46e8',
-              700: '#5834d4',
-              800: '#4829b0',
-              900: '#3a228c'
-            }
+              50: '#f4f1e8',
+              100: '#e7e0d2',
+              200: '#d8cfbb',
+              300: '#c7b79d',
+              400: '#a98f77',
+              500: '#7f685d',
+              600: '#5C4034',
+              700: '#4b342d',
+              800: '#362923',
+              900: '#241b1a'
+            },
+            olive: {
+              50: '#f3f6ef',
+              100: '#e7ebdc',
+              200: '#d3dcc0',
+              300: '#bac79d',
+              400: '#8ea06d',
+              500: '#768a5e',
+              600: '#55633F',
+              700: '#434f31',
+              800: '#2f3a27',
+              900: '#1f281d'
+            },
+            sage: {
+              50: '#f8f6f1',
+              100: '#e9e3d8',
+              200: '#d8d2be',
+              300: '#c3bfa8',
+              400: '#b6ad90',
+              500: '#a39d84',
+              600: '#DAD7C6',
+              700: '#b7b39d',
+              800: '#7f7e69',
+              900: '#4d4d42'
+            },
+            slate: neutralTones,
+            gray: neutralTones,
+            zinc: neutralTones,
+            stone: neutralTones,
+            sky: oliveTones,
+            blue: oliveTones,
+            cyan: oliveTones,
+            teal: oliveTones,
+            emerald: oliveTones,
+            green: oliveTones,
+            lime: oliveTones,
+            violet: oliveTones,
+            indigo: oliveTones,
+            purple: oliveTones,
+            rose: clayTones,
+            pink: clayTones,
+            fuchsia: clayTones,
+            red: clayTones,
+            orange: clayTones,
+            amber: clayTones,
+            yellow: clayTones
           }
         }
       }
     }
   </script>
   {% load static %}
-  <link rel="icon" href="{% static 'brand/favicon.ico' %}" sizes="any">
-  <link rel="icon" type="image/png" href="{% static 'brand/favicon.png' %}">
-  <link rel="apple-touch-icon" href="{% static 'brand/favicon.png' %}">
+  <link rel="icon" href="{% static 'brand/favicon.svg' %}" type="image/svg+xml">
+  <link rel="icon" href="{% static 'brand/favicon.png' %}" type="image/png">
+  <link rel="apple-touch-icon" href="{% static 'brand/favicon.svg' %}">
   <link rel="stylesheet" href="{% static 'css/app.css' %}">
   {% block extra_head %}{% endblock %}
 </head>
-<body class="site-body min-h-full font-sans text-slate-900 antialiased">
+<body class="site-body min-h-full font-sans antialiased">
   {% block body %}{% endblock %}
   <script src="{% static 'js/app.js' %}"></script>
   {% block extra_js %}{% endblock %}

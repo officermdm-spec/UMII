@@ -8,7 +8,9 @@
     @page { margin: 8mm; }
     .label {
       width: 72mm;
-      border: 1px solid #e2e8f0;
+      border: 1px solid #c9c5b1;
+      background: #F4F1E8;
+      color: #55633F;
       padding: 8px 10px;
       page-break-inside: avoid;
       break-inside: avoid;
@@ -21,28 +23,29 @@
     @media print {
       .no-print { display: none !important; }
       body { background: white; }
+      .label { background: white; color: black; }
     }
   </style>
 </head>
-<body class="bg-slate-100 p-4 text-slate-900">
-  <form method="get" class="no-print mb-4 flex flex-wrap items-end gap-3 rounded-2xl border bg-white p-4 text-sm">
+<body class="p-4" style="background:#DAD7C6;color:#55633F">
+  <form method="get" class="no-print mb-4 flex flex-wrap items-end gap-3 rounded-2xl border bg-[#F4F1E8] p-4 text-sm">
     <div>
       <p class="font-semibold">{{ product.name }}</p>
-      <p class="text-slate-500">{{ product.barcode }}</p>
+      <p style="color:#68734f">{{ product.barcode }}</p>
     </div>
     <label>Quantity
       <input type="number" name="copies" min="1" max="100" value="{{ copies }}" class="ml-2 rounded border px-2 py-1 w-20">
     </label>
     <button class="rounded-lg border px-3 py-2">Update</button>
-    <button type="button" onclick="window.print()" class="rounded-lg bg-brand-600 px-3 py-2 text-white" style="background:#2563eb">Print</button>
+    <button type="button" onclick="window.print()" class="rounded-lg px-3 py-2 text-white" style="background:#55633F">Print</button>
     <a class="rounded-lg border px-3 py-2" href="{% url 'products:detail' product.pk %}">Back</a>
   </form>
   <div class="flex flex-wrap gap-3">
     {% for n in copy_range %}
-      <div class="label bg-white">
+      <div class="label">
         <p class="text-xs font-semibold tracking-wide">FP MART</p>
         <p class="mt-1 text-sm font-semibold">{{ product.name }}</p>
-        <p class="text-xs text-slate-500">SKU: {{ product.sku }}</p>
+        <p class="text-xs" style="color:#68734f">SKU: {{ product.sku }}</p>
         <img src="{% url 'products:barcode_png' product.pk %}" alt="{{ product.barcode }}">
         <p class="mt-1 text-center font-mono text-sm">{{ product.barcode }}</p>
         <p class="text-center text-sm font-semibold">Rs. {{ product.selling_price }}</p>

@@ -1,36 +1,36 @@
 <footer class="site-footer mt-16">
   <div class="mx-auto grid max-w-7xl gap-10 px-4 py-12 sm:grid-cols-2 sm:px-6 lg:grid-cols-4 lg:px-8">
     <div>
-      <a href="{% url 'store:home' %}" class="inline-flex rounded-2xl bg-white px-3 py-2">
+      <a href="{% url 'store:home' %}" class="inline-flex rounded-2xl bg-[#DAD7C6] px-3 py-2">
         {% include "components/brand_logo.html" with logo_class="h-10 w-auto max-w-[180px] object-contain" %}
       </a>
-      <p class="mt-4 max-w-xs text-sm leading-6 text-blue-100/75">Quality products, simple checkout, and reliable order support—all in one friendly store.</p>
+      <p class="mt-4 max-w-xs text-sm leading-6 text-sage-200">Quality garments, simple checkout, and reliable order support—all in one friendly store.</p>
     </div>
     <div>
-      <p class="font-semibold text-white">Shop</p>
-      <ul class="mt-3 space-y-2 text-sm text-blue-100/75">
+      <p class="font-semibold text-sage-200">Shop</p>
+      <ul class="mt-3 space-y-2 text-sm text-sage-200">
         {% for cat in nav_categories %}
-          <li><a class="transition hover:text-white" href="{% url 'store:category' cat.slug %}">{{ cat.name }}</a></li>
+          <li><a class="transition hover:text-sage-200" href="{% url 'store:category' cat.slug %}">{{ cat.name }}</a></li>
         {% endfor %}
       </ul>
     </div>
     <div>
-      <p class="font-semibold text-white">Customer care</p>
-      <ul class="mt-3 space-y-2 text-sm text-blue-100/75">
-        <li><a class="transition hover:text-white" href="{% url 'customers:dashboard' %}">My account</a></li>
-        <li><a class="transition hover:text-white" href="{% url 'orders_customer:list' %}">Track order</a></li>
-        <li><a class="transition hover:text-white" href="{% url 'reviews_customer:feedback' %}">Feedback</a></li>
+      <p class="font-semibold text-sage-200">Customer care</p>
+      <ul class="mt-3 space-y-2 text-sm text-sage-200">
+        <li><a class="transition hover:text-sage-200" href="{% url 'customers:dashboard' %}">My account</a></li>
+        <li><a class="transition hover:text-sage-200" href="{% url 'orders_customer:list' %}">Track order</a></li>
+        <li><a class="transition hover:text-sage-200" href="{% url 'reviews_customer:feedback' %}">Feedback</a></li>
       </ul>
     </div>
     <div>
-      <p class="font-semibold text-white">Need help?</p>
-      <p class="mt-3 text-sm leading-6 text-blue-100/75">Chat with us on WhatsApp for product and order support.</p>
+      <p class="font-semibold text-sage-200">Need help?</p>
+      <p class="mt-3 text-sm leading-6 text-sage-200">Chat with us on WhatsApp for product and order support.</p>
       {% if whatsapp_number %}
-        <a href="https://wa.me/{{ whatsapp_number }}" target="_blank" rel="noopener" class="mt-4 inline-flex rounded-xl bg-white/10 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/20">Start a chat</a>
+        <a href="https://wa.me/{{ whatsapp_number }}" target="_blank" rel="noopener" class="mt-4 inline-flex rounded-xl bg-white/10 px-4 py-2 text-sm font-medium text-sage-200 transition hover:bg-white/20">Start a chat</a>
       {% endif %}
     </div>
   </div>
   <div class="border-t border-white/10">
-    <p class="mx-auto max-w-7xl px-4 py-5 text-xs text-blue-100/60 sm:px-6 lg:px-8">© FP Mart. A smoother way to shop.</p>
+    <p class="mx-auto max-w-7xl px-4 py-5 text-xs text-sage-100 sm:px-6 lg:px-8">© UMII Garments. A smoother way to shop.</p>
   </div>
 </footer>
