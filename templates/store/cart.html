@@ -27,7 +27,11 @@
                 <div class="h-14 w-14 overflow-hidden rounded-xl bg-slate-100">
                   {% if row.product.cover_image %}<img src="{{ row.product.cover_image.url }}" alt="" class="h-full w-full object-cover">{% endif %}
                 </div>
-                <div><p class="font-semibold text-slate-800">{{ row.product.name }}</p><p class="text-xs text-slate-500">{{ row.product.sku }}</p></div>
+                <div>
+                  <p class="font-semibold text-slate-800">{{ row.product.name }}</p>
+                  {% if row.product.size %}<p class="text-xs text-slate-600">Size: {{ row.product.size }}{% if row.product.color %} · {{ row.product.color }}{% endif %}</p>{% endif %}
+                  <p class="text-xs text-slate-500">{{ row.product.sku }}</p>
+                </div>
               </div>
             </td>
             <td class="px-4 py-3 font-medium">

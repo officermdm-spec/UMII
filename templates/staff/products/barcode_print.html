@@ -45,6 +45,7 @@
       <div class="label">
         <p class="text-xs font-semibold tracking-wide">FP MART</p>
         <p class="mt-1 text-sm font-semibold">{{ product.name }}</p>
+        {% if product.size %}<p class="text-xs">Size: {{ product.size }}{% if product.color %} / {{ product.color }}{% endif %}</p>{% endif %}
         <p class="text-xs" style="color:#68734f">SKU: {{ product.sku }}</p>
         <img src="{% url 'products:barcode_png' product.pk %}" alt="{{ product.barcode }}">
         <p class="mt-1 text-center font-mono text-sm">{{ product.barcode }}</p>

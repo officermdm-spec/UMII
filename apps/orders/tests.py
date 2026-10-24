@@ -6,6 +6,7 @@ from django.urls import reverse
 
 from apps.accounts.permissions import MODULES
 from apps.accounts.tests import build_catalog
+from apps.categories.models import Category
 from apps.customers.models import Address
 from apps.inventory.models import StockTransaction, Warehouse
 from apps.inventory.services import available_stock, record_stock_transaction
@@ -13,6 +14,7 @@ from apps.orders.models import CartItem, Order, OrderItem, OrderStatusHistory
 from apps.orders.services import OrderError, build_order_tracker, change_order_status, place_order
 from apps.payments.models import Payment, PaymentMethod
 from apps.payments.services import create_payment_for_order, set_order_payment_status
+from apps.products.models import Product
 
 User = get_user_model()
 
@@ -111,7 +113,6 @@ class OrderIsolationTests(TestCase):
         self.assertEqual(response.status_code, 302)
         follow = self.client.get(reverse("orders_cart:cart"))
         self.assertEqual(follow.context["summary"]["item_count"], 0)
-
 
 class OrderStatusUpdateTests(TestCase):
     def setUp(self):
@@ -329,6 +330,62 @@ class SessionDict(dict):
 
 def make_request(user):
     return type("R", (), {"user": user, "session": SessionDict()})()
+
+
+class ProductVariantOrderSnapshotTests(TestCase):
+    def test_order_keeps_selected_size_snapshot(self):
+        warehouse = Warehouse.objects.create(name="Main", code="MAIN")
+        category = Category.objects.create(name="Garments", slug="garments")
+        parent = Product.objects.create(
+            name="Everyday Tee",
+            sku="TEE-BASE",
+            selling_price=Decimal("1000.00"),
+            purchase_price=Decimal("500.00"),
+            category=category,
+        )
+        variant = Product.objects.create(
+            name=parent.name,
+            sku="TEE-M",
+            selling_price=parent.selling_price,
+            purchase_price=parent.purchase_price,
+            category=parent.category,
+            variant_parent=parent,
+            size="Medium",
+        )
+        customer = User.objects.create_user(
+            username="variant-buyer",
+            password="pass12345",
+            user_type=User.UserType.CUSTOMER,
+        )
+        address = Address.objects.create(
+            user=customer,
+            full_name="Variant Buyer",
+            phone="03000000000",
+            address="Street 1",
+            city="Karachi",
+            is_default=True,
+        )
+        method, _ = PaymentMethod.objects.get_or_create(
+            code=PaymentMethod.Code.COD,
+            defaults={"name": "Cash on Delivery"},
+        )
+        record_stock_transaction(
+            product=variant,
+            warehouse=warehouse,
+            quantity=3,
+            transaction_type=StockTransaction.Type.CORRECTION,
+            reference="TEE-M-OPEN",
+        )
+        CartItem.objects.create(user=customer, product=variant, quantity=1)
+        order = place_order(
+            request=make_request(customer),
+            billing_address=address,
+            shipping_address=address,
+            payment_method=method,
+        )
+        item = order.items.get()
+        self.assertEqual(item.product_size, "Medium")
+        self.assertEqual(item.sku, "TEE-M")
 
 
 class WarehouseAwareCartTests(TestCase):

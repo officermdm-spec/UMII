@@ -497,6 +497,8 @@ def place_order(
             product=product,
             sku=product.sku,
             product_name=product.name,
+            product_size=product.size,
+            product_color=product.color,
             quantity=qty,
             unit_price=row["list_price"],
             discount=money(row["product_discount"] + row["coupon_discount"]),

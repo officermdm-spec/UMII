@@ -5,13 +5,14 @@
 <p class="no-print mt-2 text-sm"><a class="text-brand-700" href="{% url 'products:brand_list' %}">Manage brands</a></p>
 <div class="mt-4 overflow-x-auto rounded-2xl border bg-white">
   <table class="min-w-full text-sm">
-    <thead class="bg-slate-50 text-left"><tr><th class="px-4 py-3">SKU</th><th class="px-4 py-3">Barcode</th><th class="px-4 py-3">Name</th><th class="px-4 py-3">Category</th><th class="px-4 py-3">Price</th><th class="px-4 py-3">Discount</th><th class="px-4 py-3">Stock</th><th class="px-4 py-3 text-right">Actions</th></tr></thead>
+    <thead class="bg-slate-50 text-left"><tr><th class="px-4 py-3">SKU</th><th class="px-4 py-3">Barcode</th><th class="px-4 py-3">Name</th><th class="px-4 py-3">Size / color</th><th class="px-4 py-3">Category</th><th class="px-4 py-3">Price</th><th class="px-4 py-3">Discount</th><th class="px-4 py-3">Stock</th><th class="px-4 py-3 text-right">Actions</th></tr></thead>
     <tbody>
       {% for p in products %}
         <tr class="border-t">
           <td class="px-4 py-3">{{ p.sku }}</td>
           <td class="px-4 py-3 font-mono text-xs">{{ p.barcode }}</td>
-          <td class="px-4 py-3">{{ p.name }}</td>
+          <td class="px-4 py-3">{{ p.name }}{% if p.variant_parent %}<span class="ml-1 text-xs text-slate-500">variant</span>{% elif p.has_variants %}<span class="ml-1 text-xs text-slate-500">style</span>{% endif %}</td>
+          <td class="px-4 py-3">{{ p.size|default:"—" }}{% if p.color %} / {{ p.color }}{% endif %}</td>
           <td class="px-4 py-3">{{ p.category }}</td>
           <td class="px-4 py-3">
             {% if p.has_discount %}
@@ -31,7 +32,7 @@
           </td>
         </tr>
       {% empty %}
-        <tr><td class="px-4 py-6 text-slate-500" colspan="8">No products yet.</td></tr>
+        <tr><td class="px-4 py-6 text-slate-500" colspan="9">No products yet.</td></tr>
       {% endfor %}
     </tbody>
   </table>

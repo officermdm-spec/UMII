@@ -1,15 +1,20 @@
 from decimal import Decimal
+from datetime import timedelta
 
+from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 
 from apps.accounts.permissions import MODULES
 from apps.accounts.tests import build_catalog
+from apps.categories.models import Category
 from apps.inventory.models import Inventory
 from apps.inventory.services import available_stock, ensure_inventory, get_default_warehouse
 from apps.products.models import Brand, Product, ProductImage
-from django.contrib.auth import get_user_model
+from apps.promotions.models import ProductOffer, Promotion
+from apps.vendors.models import Vendor
 
 User = get_user_model()
 
@@ -32,6 +37,164 @@ class ProductPricingTests(TestCase):
         self.assertContains(response, "900")
         self.assertContains(response, "1,000")
         self.assertContains(response, "10%")
+
+
+class ProductVariantTests(TestCase):
+    def setUp(self):
+        self.warehouse = get_default_warehouse()
+        self.category = Category.objects.create(name="Garments", slug="garments")
+        self.vendor = Vendor.objects.create(company_name="UMII Supplier", phone="03000000000")
+        self.staff = User.objects.create_user(
+            username="variant-staff",
+            password="pass12345",
+            user_type=User.UserType.STAFF,
+            is_staff=True,
+            allowed_modules=[MODULES.PRODUCTS],
+        )
+
+    def test_staff_can_create_product_with_size_variants(self):
+        self.client.login(username="variant-staff", password="pass12345")
+        get_response = self.client.get(reverse("products:create"))
+        prefix = get_response.context["variant_formset"].prefix
+        self.assertNotIn("size", get_response.context["form"].fields)
+        self.assertNotIn("color", get_response.context["form"].fields)
+        self.assertIn("size", get_response.context["variant_formset"].empty_form.fields)
+        self.assertIn("color", get_response.context["variant_formset"].empty_form.fields)
+        self.assertNotContains(get_response, 'name="size"')
+        self.assertNotContains(get_response, 'name="color"')
+        self.assertContains(get_response, f'name="{prefix}-0-size"')
+        self.assertContains(get_response, f'name="{prefix}-0-color"')
+        response = self.client.post(
+            reverse("products:create"),
+            {
+                "name": "Everyday Tee",
+                "selling_price": "1000.00",
+                "purchase_price": "500.00",
+                "category": self.category.pk,
+                "vendor": self.vendor.pk,
+                "brand": "",
+                "size": "",
+                "color": "",
+                "unit": "pcs",
+                "discount_percent": "0",
+                "min_stock_level": "5",
+                "description": "Cotton everyday tee",
+                f"{prefix}-TOTAL_FORMS": "1",
+                f"{prefix}-INITIAL_FORMS": "0",
+                f"{prefix}-MIN_NUM_FORMS": "0",
+                f"{prefix}-MAX_NUM_FORMS": "1000",
+                f"{prefix}-0-sku": "",
+                f"{prefix}-0-size": "Small",
+                f"{prefix}-0-color": "",
+                f"{prefix}-0-is_active": "on",
+            },
+        )
+        if response.status_code != 302:
+            self.fail(
+                f"Product errors: {response.context['form'].errors}; "
+                f"variant errors: {response.context['variant_formset'].errors}; "
+                f"variant formset errors: {response.context['variant_formset'].non_form_errors()}"
+            )
+        parent = Product.objects.get(name="Everyday Tee", variant_parent__isnull=True)
+        small = Product.objects.get(variant_parent=parent, size="Small")
+        self.assertTrue(small.sku.startswith(parent.sku))
+        self.assertEqual(small.selling_price, parent.selling_price)
+        self.assertFalse(Inventory.objects.filter(product=small).exists())
+
+    def test_customer_selects_size_and_cart_uses_variant_stock(self):
+        parent = Product.objects.create(
+            name="Everyday Tee",
+            sku="TEE-BASE",
+            selling_price=Decimal("1000.00"),
+            purchase_price=Decimal("500.00"),
+            category=self.category,
+            vendor=self.vendor,
+        )
+        small = Product.objects.create(
+            name=parent.name,
+            sku="TEE-S",
+            selling_price=parent.selling_price,
+            purchase_price=parent.purchase_price,
+            category=parent.category,
+            vendor=parent.vendor,
+            variant_parent=parent,
+            size="Small",
+        )
+        ensure_inventory(small, self.warehouse)
+        from apps.inventory.models import StockTransaction
+        from apps.inventory.services import record_stock_transaction
+
+        record_stock_transaction(
+            product=small,
+            warehouse=self.warehouse,
+            quantity=4,
+            transaction_type=StockTransaction.Type.CORRECTION,
+            reference="TEE-S-OPEN",
+        )
+
+        detail = self.client.get(parent.get_absolute_url())
+        self.assertEqual(detail.status_code, 200)
+        self.assertContains(detail, "Small")
+        self.assertContains(detail, "4 available")
+
+        missing_size = self.client.post(
+            reverse("orders_cart:add", args=[parent.pk]), {"quantity": 1}
+        )
+        self.assertEqual(missing_size.status_code, 302)
+        self.assertNotIn(str(small.pk), self.client.session.get("cart", {}))
+
+        added = self.client.post(
+            reverse("orders_cart:add", args=[parent.pk]),
+            {"quantity": 2, "variant_id": str(small.pk)},
+        )
+        self.assertEqual(added.status_code, 302)
+        self.assertEqual(self.client.session["cart"][str(small.pk)], 2)
+        cart = self.client.get(reverse("orders_cart:cart"))
+        self.assertContains(cart, "Size: Small")
+
+    def test_parent_product_offers_apply_to_its_size_variants(self):
+        parent = Product.objects.create(
+            name="Everyday Tee",
+            sku="TEE-PROMO",
+            selling_price=Decimal("1000.00"),
+            purchase_price=Decimal("500.00"),
+            category=self.category,
+        )
+        variant = Product.objects.create(
+            name=parent.name,
+            sku="TEE-PROMO-M",
+            selling_price=parent.selling_price,
+            purchase_price=parent.purchase_price,
+            category=parent.category,
+            variant_parent=parent,
+            size="Medium",
+        )
+        now = timezone.now()
+        offer = ProductOffer.objects.create(
+            name="Tee sale",
+            offer_type=ProductOffer.OfferType.PERCENTAGE,
+            value=Decimal("10.00"),
+            start_date=now - timedelta(hours=1),
+            end_date=now + timedelta(hours=1),
+            is_active=True,
+        )
+        offer.products.add(parent)
+        self.assertEqual(variant.effective_price, Decimal("900.00"))
+
+        coupon = Promotion.objects.create(
+            name="Tee coupon",
+            code="TEE10",
+            discount_type=Promotion.DiscountType.PERCENTAGE,
+            value=Decimal("10.00"),
+            apply_to=Promotion.ApplyTo.PRODUCT,
+            start_date=now - timedelta(hours=1),
+            end_date=now + timedelta(hours=1),
+            min_order_amount=Decimal("0.00"),
+        )
+        coupon.products.add(parent)
+        from apps.promotions.services import _line_is_eligible
+
+        self.assertTrue(_line_is_eligible(variant, coupon))
 
 
 class ProductImageTests(TestCase):

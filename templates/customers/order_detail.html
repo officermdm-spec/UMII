@@ -25,6 +25,7 @@
         <tr class="border-t">
           <td class="px-4 py-3">
             <p>{{ item.product_name }}</p>
+            {% if item.product_size %}<p class="text-xs text-slate-500">Size: {{ item.product_size }}{% if item.product_color %} · {{ item.product_color }}{% endif %}</p>{% endif %}
             {% if item.has_promo %}
               <p class="mt-1 text-xs font-semibold text-rose-600">{{ order.coupon_code }} · {{ item.promo_percent|floatformat:0 }}% off</p>
             {% endif %}

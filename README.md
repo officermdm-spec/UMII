@@ -132,6 +132,7 @@ Typical first-time path:
 4. **Products** — name, selling/purchase price, optional catalog `%` markdown, main photo + gallery.
    - SKU is auto (`SKU-…`).
    - A unique **Code 128 barcode** (`FP` + digits) is generated on save and does not change when you edit price or stock.
+   - For a multi-size garment, create one style listing, leave its **Size** blank, then add each size/color under **Size and color variants**. Each option receives its own SKU and barcode; receive/adjust stock against that option, not the style listing.
 5. **GRN** — create a goods-received note with lines (dropdown or barcode scan), then **Approve**.
    - Approval posts stock through `record_stock_transaction`.
    - A FIFO **cost layer** stores the actual GRN purchase rate (not the current product purchase price).
@@ -147,6 +148,8 @@ Typical first-time path:
 Until GRN is approved, the shop can show products as out of stock.
 
 ### 2. Customer browses and buys
+
+Customers open the single style page, select an available size/color, choose quantity, and add that option to the cart. Each variant is stocked and reserved independently; its size/color is saved on the order and invoice. If a style’s existing stock has no size recorded, assign that stock a size before adding variants.
 
 ```mermaid
 flowchart TD
@@ -545,7 +548,7 @@ P&L: Gross sales − product discounts − offer discounts − coupon discounts 
 - Product barcode is unique, product-level, and stable on edit. Lookup is `get_product_by_barcode()`.
 - Sale accounting posts once on **confirm**. Payment cash posts only when status is **paid**. Screenshot upload is not money.
 - Posted journals are not deleted; use reversal. Old production rows are not backfilled with fake money.
-- Order lines store `product_name`, `sku`, `unit_price`, discount splits, and FIFO `cogs_amount` snapshots.
+- Order lines store `product_name`, `sku`, size/color, `unit_price`, discount splits, and FIFO `cogs_amount` snapshots.
 - Staff access is per user (allowed modules), not Django groups. Accounting URLs return 403 without the Accounting module.
 - Customers can only open their own orders, returns, and addresses.
 - Product photos should stay in git (`media/products/`) because Render’s disk is wiped on each deploy unless a persistent disk is attached. Barcode identity is the database value; the PNG is regenerated from it.

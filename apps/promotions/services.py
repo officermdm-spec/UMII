@@ -79,7 +79,7 @@ def _line_is_eligible(product, promotion, *, has_product_offer=False, allow_stac
         return False
     selected_ids = _selected_product_ids(promotion)
     if selected_ids:
-        return product.pk in selected_ids
+        return product.pk in selected_ids or product.variant_parent_id in selected_ids
     if promotion.apply_to == Promotion.ApplyTo.CATEGORY:
         category_ids = {c.pk for c in promotion.categories.all()}
         product_cat_ids = {product.category_id}
@@ -109,6 +109,22 @@ def _live_offers_for_product(product):
                 is_active=True, start_date__lte=now, end_date__gte=now
             )
         )
+    if product.variant_parent_id:
+        parent = product.variant_parent
+        parent_prefetch = getattr(parent, "_prefetched_objects_cache", {})
+        if "product_offers" in parent_prefetch:
+            offers.extend(
+                offer
+                for offer in parent.product_offers.all()
+                if offer.is_active and offer.start_date <= now <= offer.end_date
+            )
+        else:
+            offers.extend(
+                parent.product_offers.filter(
+                    is_active=True, start_date__lte=now, end_date__gte=now
+                )
+            )
+        offers = list({offer.pk: offer for offer in offers}.values())
     product._live_product_offers = offers
     return offers
 
@@ -123,6 +139,9 @@ def prime_product_offers(products):
         for product in offer.products.all():
             if product.pk in by_id:
                 by_id[product.pk].append(offer)
+            for candidate in products:
+                if candidate.variant_parent_id == product.pk:
+                    by_id[candidate.pk].append(offer)
     for product in products:
         product._live_product_offers = by_id.get(product.pk, [])
 

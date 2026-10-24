@@ -1,4 +1,5 @@
 from django import forms
+from django.db.models import Q
 from django.forms import inlineformset_factory
 from django.utils import timezone
 
@@ -47,7 +48,16 @@ class GRNItemForm(TailwindFormMixin, forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["product"].queryset = Product.objects.filter(is_active=True).order_by("name")
+        self.fields["product"].queryset = (
+            Product.objects.filter(is_active=True)
+            .filter(
+                Q(variant_parent__isnull=False)
+                | Q(variants__isnull=True)
+                | Q(size__gt="")
+            )
+            .distinct()
+            .order_by("name", "size")
+        )
         self.fields["batch_number"].required = False
         self.fields["expiry_date"].required = False
         self.fields["quantity"].widget.attrs["min"] = "1"

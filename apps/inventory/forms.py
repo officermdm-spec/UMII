@@ -1,4 +1,5 @@
 from django import forms
+from django.db.models import Q
 
 from apps.inventory.models import StockTransaction, Warehouse
 from apps.inventory.services import available_stock
@@ -16,7 +17,15 @@ class WarehouseForm(TailwindFormMixin, forms.ModelForm):
 
 
 class StockAdjustmentForm(TailwindFormMixin, forms.Form):
-    product = forms.ModelChoiceField(queryset=Product.objects.filter(is_active=True))
+    product = forms.ModelChoiceField(
+        queryset=Product.objects.filter(is_active=True)
+        .filter(
+            Q(variant_parent__isnull=False)
+            | Q(variants__isnull=True)
+            | Q(size__gt="")
+        )
+        .distinct()
+    )
     warehouse = forms.ModelChoiceField(queryset=Warehouse.objects.filter(is_active=True))
     quantity = forms.IntegerField(
         help_text="Positive adds stock. Negative reduces stock. Damage must be negative."

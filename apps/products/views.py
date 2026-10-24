@@ -1,4 +1,5 @@
 from django.contrib import messages
+from django.db import transaction
 from django.db.models import Avg, Q
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect
@@ -14,7 +15,7 @@ from apps.products.barcode import (
     get_product_by_barcode,
     render_barcode_png,
 )
-from apps.products.forms import BrandForm, ProductForm
+from apps.products.forms import BrandForm, ProductForm, ProductVariantFormSet
 from apps.products.models import Brand, Product, ProductImage
 from apps.promotions.services import live_promotions
 
@@ -48,11 +49,32 @@ class ProductCreateView(ModulePermissionMixin, CreateView):
     template_name = "staff/products/form.html"
     success_url = reverse_lazy("products:list")
 
+    def get_variant_formset(self):
+        if not hasattr(self, "_variant_formset"):
+            data = self.request.POST if self.request.method == "POST" else None
+            instance = self.object or Product()
+            self._variant_formset = ProductVariantFormSet(data, instance=instance)
+        return self._variant_formset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["variant_formset"] = self.get_variant_formset()
+        return context
+
+    @transaction.atomic
     def form_valid(self, form):
-        response = super().form_valid(form)
+        self._variant_formset = ProductVariantFormSet(
+            self.request.POST, instance=form.instance
+        )
+        if not self._variant_formset.is_valid():
+            return self.form_invalid(form)
+        self.object = form.save()
         _save_product_images(self.request, self.object)
+        self._variant_formset.instance = self.object
+        self._variant_formset.save()
+        _sync_product_variants(self.object)
         messages.success(self.request, "Product created.")
-        return response
+        return redirect(self.get_success_url())
 
 
 class ProductUpdateView(ModulePermissionMixin, UpdateView):
@@ -62,16 +84,33 @@ class ProductUpdateView(ModulePermissionMixin, UpdateView):
     template_name = "staff/products/form.html"
     success_url = reverse_lazy("products:list")
 
+    def get_variant_formset(self):
+        if self.object.variant_parent_id:
+            return None
+        if not hasattr(self, "_variant_formset"):
+            data = self.request.POST if self.request.method == "POST" else None
+            self._variant_formset = ProductVariantFormSet(data, instance=self.object)
+        return self._variant_formset
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["gallery"] = self.object.images.all()
+        context["variant_formset"] = self.get_variant_formset()
         return context
 
+    @transaction.atomic
     def form_valid(self, form):
-        response = super().form_valid(form)
+        variant_formset = self.get_variant_formset()
+        if variant_formset and not variant_formset.is_valid():
+            return self.form_invalid(form)
+        self.object = form.save()
         _save_product_images(self.request, self.object)
+        if variant_formset:
+            variant_formset.instance = self.object
+            variant_formset.save()
+            _sync_product_variants(self.object)
         messages.success(self.request, "Product updated.")
-        return response
+        return redirect(self.get_success_url())
 
 
 class ProductDeleteView(SafeDeleteMixin, ModulePermissionMixin, DeleteView):
@@ -133,6 +172,17 @@ class ProductDetailView(ModulePermissionMixin, DetailView):
     model = Product
     template_name = "staff/products/detail.html"
     context_object_name = "product"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["variants"] = (
+            self.object.variants.select_related("variant_parent")
+            .prefetch_related("inventories")
+            .all()
+            if not self.object.variant_parent_id
+            else []
+        )
+        return context
 
 
 class ProductBarcodePrintView(ModulePermissionMixin, DetailView):
@@ -281,24 +331,53 @@ def _save_product_images(request, product):
             product.refresh_from_db()
 
 
+def _sync_product_variants(product):
+    Product.objects.filter(variant_parent=product).update(
+        name=product.name,
+        category=product.category,
+        vendor=product.vendor,
+        brand=product.brand,
+        description=product.description,
+        image=product.image.name if product.image else "",
+        selling_price=product.selling_price,
+        purchase_price=product.purchase_price,
+        unit=product.unit,
+        tax_percent=product.tax_percent,
+        discount_percent=product.discount_percent,
+        min_stock_level=product.min_stock_level,
+    )
+
+
 class StoreHomeView(ListView):
     template_name = "store/home.html"
     context_object_name = "featured_products"
 
     def get_queryset(self):
         return (
-            Product.objects.filter(is_active=True)
+            Product.objects.filter(is_active=True, variant_parent__isnull=True)
             .select_related("category")
-            .prefetch_related("inventories", "images", "product_offers")[:8]
+            .prefetch_related(
+                "inventories",
+                "images",
+                "product_offers",
+                "variants__inventories",
+            )[:8]
         )
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["categories"] = Category.objects.filter(is_active=True, parent__isnull=True)
         context["deals"] = (
-            Product.objects.filter(is_active=True, discount_percent__gt=0)
+            Product.objects.filter(
+                is_active=True, variant_parent__isnull=True, discount_percent__gt=0
+            )
             .select_related("category")
-            .prefetch_related("inventories", "images", "product_offers")[:4]
+            .prefetch_related(
+                "inventories",
+                "images",
+                "product_offers",
+                "variants__inventories",
+            )[:4]
         )
         context["live_promotions"] = live_promotions()[:8]
         return context
@@ -311,9 +390,15 @@ class StoreProductListView(ListView):
 
     def get_queryset(self):
         qs = (
-            Product.objects.filter(is_active=True)
+            Product.objects.filter(is_active=True, variant_parent__isnull=True)
             .select_related("category", "brand")
-            .prefetch_related("inventories", "images", "product_offers")
+            .prefetch_related(
+                "inventories",
+                "images",
+                "product_offers",
+                "variants__inventories",
+                "variants__product_offers",
+            )
         )
         q = self.request.GET.get("q")
         category = self.request.GET.get("category")
@@ -321,7 +406,13 @@ class StoreProductListView(ListView):
         max_price = self.request.GET.get("max_price")
         sort = self.request.GET.get("sort", "newest")
         if q:
-            qs = qs.filter(Q(name__icontains=q) | Q(sku__icontains=q) | Q(description__icontains=q))
+            qs = qs.filter(
+                Q(name__icontains=q)
+                | Q(sku__icontains=q)
+                | Q(description__icontains=q)
+                | Q(variants__is_active=True, variants__sku__icontains=q)
+                | Q(variants__is_active=True, variants__size__icontains=q)
+            ).distinct()
         if category:
             qs = qs.filter(Q(category__slug=category) | Q(category__parent__slug=category))
         if min_price:
@@ -367,18 +458,45 @@ class StoreProductDetailView(DetailView):
     def get_queryset(self):
         return (
             Product.objects.filter(is_active=True)
+            .filter(Q(variant_parent__isnull=True) | Q(variant_parent__is_active=True))
             .select_related("category", "vendor", "brand")
-            .prefetch_related("inventories", "images", "product_offers")
+            .prefetch_related(
+                "inventories",
+                "images",
+                "product_offers",
+                "variants__inventories",
+                "variants__product_offers",
+            )
         )
+
+    def get_object(self, queryset=None):
+        product = super().get_object(queryset)
+        if product.variant_parent_id:
+            return product.variant_parent
+        return product
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         product = self.object
+        child_variants = [
+            variant
+            for variant in product._related_variants()
+            if variant.is_active
+        ]
+        context["variant_options"] = (
+            ([product] if product.size else []) + child_variants
+            if product.has_variants
+            else []
+        )
         context["gallery"] = [img for img in product.images.all() if img.file_exists]
         context["reviews"] = product.reviews.filter(is_approved=True).select_related("customer")
         context["avg_rating"] = context["reviews"].aggregate(avg=Avg("rating"))["avg"]
         context["related"] = (
-            Product.objects.filter(is_active=True, category=product.category)
+            Product.objects.filter(
+                is_active=True,
+                variant_parent__isnull=True,
+                category=product.category,
+            )
             .exclude(pk=product.pk)
             .prefetch_related("inventories", "images", "product_offers")[:4]
         )

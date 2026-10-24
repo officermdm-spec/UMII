@@ -2,6 +2,7 @@ from decimal import Decimal
 
 from django.core.validators import MinValueValidator
 from django.db import IntegrityError, models, transaction
+from django.db.models import Q
 from django.urls import reverse
 from django.utils.text import slugify
 
@@ -51,6 +52,13 @@ class Product(models.Model):
         blank=True,
         related_name="products",
     )
+    variant_parent = models.ForeignKey(
+        "self",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="variants",
+    )
     description = models.TextField(blank=True)
     image = models.ImageField(upload_to="products/main/", blank=True, null=True)
     size = models.CharField(max_length=50, blank=True)
@@ -78,6 +86,13 @@ class Product(models.Model):
             models.Index(fields=["category", "is_active"]),
             models.Index(fields=["vendor"]),
         ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["variant_parent", "size", "color"],
+                condition=Q(variant_parent__isnull=False),
+                name="uniq_product_variant_size_color",
+            )
+        ]
 
     def save(self, *args, **kwargs):
         if not self.slug:
@@ -98,10 +113,14 @@ class Product(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self):
+        if self.variant_parent_id:
+            details = " / ".join(filter(None, (self.size, self.color)))
+            return f"{self.name} — {details} ({self.sku})"
         return f"{self.name} ({self.sku})"
 
     def get_absolute_url(self):
-        return reverse("store:product_detail", kwargs={"slug": self.slug})
+        product = self.variant_parent or self
+        return reverse("store:product_detail", kwargs={"slug": product.slug})
 
     @property
     def discount_amount(self):
@@ -171,6 +190,15 @@ class Product(models.Model):
 
     def get_available_stock(self):
         """On-hand minus reserved across warehouses."""
+        if self.variant_parent_id:
+            return self._own_available_stock()
+        variants = self._related_variants()
+        if variants:
+            own_stock = self._own_available_stock() if self.size else 0
+            return own_stock + sum(variant._own_available_stock() for variant in variants if variant.is_active)
+        return self._own_available_stock()
+
+    def _own_available_stock(self):
         if (
             hasattr(self, "_prefetched_objects_cache")
             and "inventories" in self._prefetched_objects_cache
@@ -179,6 +207,28 @@ class Product(models.Model):
         from apps.inventory.services import available_stock
 
         return available_stock(self)
+
+    def _related_variants(self):
+        prefetched = getattr(self, "_prefetched_objects_cache", {}).get("variants")
+        if prefetched is not None:
+            return list(prefetched)
+        return list(self.variants.all())
+
+    @property
+    def has_variants(self):
+        if self.variant_parent_id:
+            return False
+        return bool(self._related_variants())
+
+    @property
+    def variant_sizes(self):
+        if self.variant_parent_id:
+            return []
+        variants = [variant for variant in self._related_variants() if variant.is_active]
+        sizes = ([self.size] if self.size else []) + [
+            variant.size for variant in variants if variant.size
+        ]
+        return list(dict.fromkeys(sizes))
 
     @property
     def in_stock(self):

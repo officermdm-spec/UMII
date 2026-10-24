@@ -5,7 +5,7 @@
 <p class="text-sm text-slate-500">Order {{ return_request.order.order_number }} · {% include "components/status_badge.html" with status=return_request.status %}</p>
 <ul class="mt-4 space-y-2 rounded-2xl border bg-white p-4 text-sm">
   {% for item in return_request.items.all %}
-    <li>{{ item.quantity }} × {{ item.order_item.product_name }} ({{ item.get_condition_display }})</li>
+    <li>{{ item.quantity }} × {{ item.order_item.product_name }}{% if item.order_item.product_size %} · {{ item.order_item.product_size }}{% if item.order_item.product_color %} / {{ item.order_item.product_color }}{% endif %}{% endif %} ({{ item.get_condition_display }})</li>
   {% endfor %}
 </ul>
 <p class="mt-4 text-sm">{{ return_request.reason }} — {{ return_request.description }}</p>

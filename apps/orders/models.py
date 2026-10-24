@@ -130,6 +130,8 @@ class OrderItem(models.Model):
     )
     sku = models.CharField(max_length=50)
     product_name = models.CharField(max_length=200)
+    product_size = models.CharField(max_length=50, blank=True)
+    product_color = models.CharField(max_length=50, blank=True)
     quantity = models.PositiveIntegerField()
     unit_price = models.DecimalField(max_digits=12, decimal_places=2)
     discount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))

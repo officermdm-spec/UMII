@@ -8,7 +8,17 @@ from apps.payments.services import PaymentError, set_order_payment_status
 class OrderItemInline(admin.TabularInline):
     model = OrderItem
     extra = 0
-    readonly_fields = ("sku", "product_name", "quantity", "unit_price", "discount", "tax", "total")
+    readonly_fields = (
+        "sku",
+        "product_name",
+        "product_size",
+        "product_color",
+        "quantity",
+        "unit_price",
+        "discount",
+        "tax",
+        "total",
+    )
     can_delete = False
 
 

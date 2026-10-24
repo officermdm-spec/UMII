@@ -150,6 +150,7 @@
           <tr>
             <td class="item-name">
               {{ item.product_name }}
+              {% if item.product_size %}<div class="muted">Size: {{ item.product_size }}{% if item.product_color %} / {{ item.product_color }}{% endif %}</div>{% endif %}
               <div class="muted">{{ item.sku }} @ {{ item.unit_price|intcomma }}</div>
               {% if item.has_promo %}<div class="muted">{{ order.coupon_code }} {{ item.promo_percent|floatformat:0 }}% off</div>{% endif %}
             </td>

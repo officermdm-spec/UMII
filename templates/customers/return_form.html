@@ -7,7 +7,7 @@
   {{ form.non_field_errors }}
   {% for item in order.items.all %}
     <label class="flex items-center justify-between gap-3 rounded-lg border px-3 py-2 text-sm">
-      <span><input type="checkbox" name="item" value="{{ item.pk }}" class="mr-2">{{ item.product_name }} ({{ item.sku }})</span>
+      <span><input type="checkbox" name="item" value="{{ item.pk }}" class="mr-2">{{ item.product_name }} ({{ item.sku }}){% if item.product_size %}<small class="block text-slate-500">Size: {{ item.product_size }}{% if item.product_color %} · {{ item.product_color }}{% endif %}</small>{% endif %}</span>
       <input type="number" name="qty_{{ item.pk }}" min="1" max="{{ item.quantity }}" value="{{ item.quantity }}" class="w-20 rounded border px-2 py-1">
     </label>
   {% endfor %}

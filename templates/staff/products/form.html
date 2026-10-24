@@ -6,6 +6,51 @@
   {% csrf_token %}
   {% for field in form %}<div><label class="text-sm font-medium">{{ field.label }}</label>{{ field }}{{ field.errors }}</div>{% endfor %}
 
+  {% if variant_formset %}
+  <section class="space-y-4 rounded-xl border border-olive-200 bg-olive-50 p-4">
+    <div>
+      <h2 class="font-semibold">Size and color variants</h2>
+      <p class="mt-1 text-sm text-slate-600">
+        Add each sellable size/color combination with its own SKU and stock. Price, product details, and photos are shared.
+        Size and color are managed here for each option. Stock for each option is managed separately in Inventory.
+      </p>
+    </div>
+    {{ variant_formset.management_form }}
+    {{ variant_formset.non_form_errors }}
+    <div id="variant-forms" class="space-y-3">
+      {% for variant_form in variant_formset %}
+        <div class="grid gap-3 rounded-lg border bg-white p-3 sm:grid-cols-2" data-variant-row>
+          {% for hidden in variant_form.hidden_fields %}{{ hidden }}{% endfor %}
+          {% for field in variant_form.visible_fields %}
+            <div>
+              <label class="text-sm font-medium" for="{{ field.id_for_label }}">{{ field.label }}</label>
+              {{ field }}
+              {{ field.errors }}
+            </div>
+          {% endfor %}
+        </div>
+      {% endfor %}
+    </div>
+    <template id="empty-variant-form">
+      <div class="grid gap-3 rounded-lg border bg-white p-3 sm:grid-cols-2" data-variant-row>
+        {% for hidden in variant_formset.empty_form.hidden_fields %}{{ hidden }}{% endfor %}
+        {% for field in variant_formset.empty_form.visible_fields %}
+          <div>
+            <label class="text-sm font-medium" for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+          </div>
+        {% endfor %}
+      </div>
+    </template>
+    <button type="button" id="add-variant" class="rounded-lg border border-olive-600 px-3 py-2 text-sm font-medium text-olive-700">Add another option</button>
+  </section>
+  {% elif object.variant_parent %}
+    <p class="rounded-xl bg-sage-100 p-4 text-sm text-slate-600">
+      This is a size/color option for <a class="font-medium text-brand-700" href="{% url 'products:update' object.variant_parent.pk %}">{{ object.variant_parent.name }}</a>.
+      Manage sibling options from the parent product.
+    </p>
+  {% endif %}
+
   {% if object %}
   <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
     <p class="text-xs uppercase tracking-wide text-slate-500">SKU</p>
@@ -65,4 +110,21 @@
 
   <button class="rounded-lg bg-brand-600 px-4 py-2 text-white">Save product</button>
 </form>
+{% if variant_formset %}
+<script>
+  (function () {
+    const addButton = document.getElementById("add-variant");
+    const rows = document.getElementById("variant-forms");
+    const template = document.getElementById("empty-variant-form");
+    const totalForms = document.getElementById("id_variants-TOTAL_FORMS");
+    if (!addButton || !rows || !template || !totalForms) return;
+    addButton.addEventListener("click", function () {
+      const index = Number(totalForms.value);
+      const html = template.innerHTML.replace(/__prefix__/g, String(index));
+      rows.insertAdjacentHTML("beforeend", html);
+      totalForms.value = String(index + 1);
+    });
+  })();
+</script>
+{% endif %}
 {% endblock %}

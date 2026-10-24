@@ -43,6 +43,21 @@ class CartView(TemplateView):
 class AddToCartView(View):
     def post(self, request, pk):
         product = get_object_or_404(Product, pk=pk, is_active=True)
+        catalog_product = product.variant_parent or product
+        if not catalog_product.is_active:
+            raise Http404
+        variants = list(catalog_product.variants.filter(is_active=True))
+        if catalog_product.has_variants:
+            selected_id = request.POST.get("variant_id")
+            options = variants + ([catalog_product] if catalog_product.size else [])
+            selected = next(
+                (option for option in options if str(option.pk) == str(selected_id)),
+                None,
+            )
+            if selected is None:
+                messages.error(request, "Please select an available size.")
+                return redirect(catalog_product.get_absolute_url())
+            product = selected
         try:
             qty = int(request.POST.get("quantity", 1) or 1)
         except (TypeError, ValueError):
@@ -53,7 +68,8 @@ class AddToCartView(View):
             messages.error(request, f"Only {available} unit(s) available.")
             return redirect(product.get_absolute_url())
         add_to_cart(request, product, qty)
-        messages.success(request, f"{product.name} added to cart.")
+        size_label = f" ({product.size})" if product.size else ""
+        messages.success(request, f"{product.name}{size_label} added to cart.")
         return redirect(safe_internal_url(request.POST.get("next"), "orders_cart:cart"))
 
 

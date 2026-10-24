@@ -22,7 +22,7 @@
     <tbody>
       {% for item in order.items.all %}
         <tr class="border-t">
-          <td class="px-4 py-3">{{ item.product_name }}</td>
+          <td class="px-4 py-3">{{ item.product_name }}{% if item.product_size %}<span class="block text-xs text-slate-500">{{ item.product_size }}{% if item.product_color %} / {{ item.product_color }}{% endif %}</span>{% endif %}</td>
           <td class="px-4 py-3">{{ item.quantity }}</td>
           <td class="px-4 py-3">{{ item.unit_price }}</td>
           <td class="px-4 py-3">{{ item.discount }}</td>

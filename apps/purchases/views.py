@@ -33,7 +33,14 @@ class GRNFormMixin:
         context["today"] = timezone.localdate()
         context["product_rates"] = {
             str(product.pk): str(product.purchase_price)
-            for product in Product.objects.filter(is_active=True).only("id", "purchase_price")
+            for product in Product.objects.filter(is_active=True)
+            .filter(
+                Q(variant_parent__isnull=False)
+                | Q(variants__isnull=True)
+                | Q(size__gt="")
+            )
+            .distinct()
+            .only("id", "purchase_price")
         }
         return context
 
