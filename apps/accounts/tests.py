@@ -70,12 +70,16 @@ class PermissionTests(TestCase):
         self.assertTrue(has_module_permission(admin, MODULES.USERS))
 
     def test_staff_nav_covers_every_module(self):
-        self.assertEqual({item["module"] for item in STAFF_NAV}, set(StaffModule.values))
+        hidden_modules = {MODULES.EXPENSES, MODULES.VENDOR_PAYMENTS}
+        self.assertEqual(
+            {item["module"] for item in STAFF_NAV},
+            set(StaffModule.values) - hidden_modules,
+        )
         labels = {item["label"] for item in STAFF_NAV}
         self.assertIn("Warehouses", labels)
         self.assertIn("Brands", labels)
-        self.assertIn("Expenses", labels)
-        self.assertIn("Vendor Payments", labels)
+        self.assertNotIn("Expenses", labels)
+        self.assertNotIn("Vendor Payments", labels)
         self.assertIn("Payment Methods", labels)
 
     def test_permissions_page_lists_every_module(self):

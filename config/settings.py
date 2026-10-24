@@ -136,18 +136,27 @@ USE_TZ = True
 STATIC_URL = "/static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
+# STORAGES = {
+#     "default": {
+#         "BACKEND": "config.storage.CatalogStorage",
+#     },
+#     "staticfiles": {
+#         "BACKEND": (
+#             "whitenoise.storage.CompressedManifestStaticFilesStorage"
+#             if not DEBUG
+#             else "django.contrib.staticfiles.storage.StaticFilesStorage"
+#         ),
+#     },
+# }
 STORAGES = {
     "default": {
-        "BACKEND": "config.storage.CatalogStorage",
+        "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
     },
     "staticfiles": {
-        "BACKEND": (
-            "whitenoise.storage.CompressedManifestStaticFilesStorage"
-            if not DEBUG
-            else "django.contrib.staticfiles.storage.StaticFilesStorage"
-        ),
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage" if not DEBUG else "django.contrib.staticfiles.storage.StaticFilesStorage",
     },
 }
+
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"

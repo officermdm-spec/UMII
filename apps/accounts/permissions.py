@@ -21,13 +21,6 @@ STAFF_NAV = [
     {"module": MODULES.REVIEWS, "label": "Reviews", "url_name": "reviews_staff:list", "namespace": "reviews_staff"},
     {"module": MODULES.PROMOTIONS, "label": "Promotions", "url_name": "promotions:list", "namespace": "promotions"},
     {"module": MODULES.ACCOUNTING, "label": "Accounting", "url_name": "accounting:dashboard", "namespace": "accounting"},
-    {"module": MODULES.EXPENSES, "label": "Expenses", "url_name": "accounting:expenses", "namespace": "accounting"},
-    {
-        "module": MODULES.VENDOR_PAYMENTS,
-        "label": "Vendor Payments",
-        "url_name": "vendor_payments:list",
-        "namespace": "vendor_payments",
-    },
 ]
 
 SAFE_HTTP_METHODS = {"GET", "HEAD", "OPTIONS"}
