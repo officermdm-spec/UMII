@@ -79,7 +79,7 @@ class ExpenseListView(AccountingMixin, ListView):
         start, end, _ = parse_date_range(self.request)
         qs = qs.filter(date__gte=start, date__lte=end)
         if q:
-            qs = qs.filter(Q(title__icontains=q) | Q(reference__icontains=q))
+            qs = qs.filter(Q(category__icontains=q) | Q(reference__icontains=q))
         return qs
 
     def get_context_data(self, **kwargs):

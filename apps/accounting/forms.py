@@ -16,7 +16,6 @@ class ExpenseForm(TailwindFormMixin, forms.ModelForm):
     class Meta:
         model = Expense
         fields = [
-            "title",
             "category",
             "amount",
             "date",
@@ -24,7 +23,6 @@ class ExpenseForm(TailwindFormMixin, forms.ModelForm):
             "reference",
             "description",
             "receipt",
-            "notes",
         ]
         widgets = {"date": forms.DateInput(attrs={"type": "date"})}
 
@@ -62,12 +60,16 @@ class OtherIncomeForm(TailwindFormMixin, forms.ModelForm):
 class VendorPaymentForm(TailwindFormMixin, forms.ModelForm):
     class Meta:
         model = VendorPayment
-        fields = ["vendor", "amount", "date", "payment_account", "reference", "notes"]
+        fields = ["vendor", "amount", "date", "payment_account", "reference"]
         widgets = {"date": forms.DateInput(attrs={"type": "date"})}
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, vendor=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["vendor"].queryset = Vendor.objects.filter(is_active=True)
+        if vendor is not None:
+            self.fields["vendor"].queryset = Vendor.objects.filter(pk=vendor.pk)
+            self.fields["vendor"].initial = vendor.pk
+            self.fields["vendor"].widget = forms.HiddenInput()
         self.fields["payment_account"].widget = forms.Select(choices=PAYMENT_ACCOUNT_CHOICES)
         self.fields["payment_account"].initial = "cash"
         if not self.instance.pk:

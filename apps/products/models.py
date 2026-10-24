@@ -6,6 +6,8 @@ from django.db.models import Q
 from django.urls import reverse
 from django.utils.text import slugify
 
+from config.storage import product_image_storage
+
 
 class Brand(models.Model):
     name = models.CharField(max_length=120, unique=True)
@@ -60,7 +62,9 @@ class Product(models.Model):
         related_name="variants",
     )
     description = models.TextField(blank=True)
-    image = models.ImageField(upload_to="products/main/", blank=True, null=True)
+    image = models.ImageField(
+        upload_to="products/main/", storage=product_image_storage, blank=True, null=True
+    )
     size = models.CharField(max_length=50, blank=True)
     color = models.CharField(max_length=50, blank=True)
     unit = models.CharField(max_length=30, default="pcs")
@@ -170,14 +174,19 @@ class Product(models.Model):
         return (self.purchase_price * qty).quantize(Decimal("0.01"))
 
     def _usable_image(self, fieldfile):
+        from django.core.files.storage import FileSystemStorage
         from config.storage import resolve_public_media
 
         name = getattr(fieldfile, "name", "") if fieldfile else ""
-        return fieldfile if resolve_public_media(name) else None
+        if not name:
+            return None
+        if isinstance(fieldfile.storage, FileSystemStorage):
+            return fieldfile if resolve_public_media(name) else None
+        return fieldfile
 
     @property
     def cover_image(self):
-        """Main photo, falling back to the first gallery file that actually exists."""
+        """Main photo, falling back to a local or remotely stored gallery image."""
         main = self._usable_image(self.image)
         if main:
             return main
@@ -255,7 +264,9 @@ class ProductImage(models.Model):
     product = models.ForeignKey(
         Product, on_delete=models.CASCADE, related_name="images"
     )
-    image = models.ImageField(upload_to="products/gallery/")
+    image = models.ImageField(
+        upload_to="products/gallery/", storage=product_image_storage
+    )
     alt_text = models.CharField(max_length=150, blank=True)
     sort_order = models.PositiveIntegerField(default=0)
 
@@ -267,6 +278,10 @@ class ProductImage(models.Model):
 
     @property
     def file_exists(self):
+        from django.core.files.storage import FileSystemStorage
         from config.storage import resolve_public_media
 
-        return bool(resolve_public_media(getattr(self.image, "name", "")))
+        name = getattr(self.image, "name", "")
+        if isinstance(self.image.storage, FileSystemStorage):
+            return bool(resolve_public_media(name))
+        return bool(name)

@@ -62,12 +62,14 @@ INSTALLED_APPS = [
     "apps.vendor_payments.apps.VendorPaymentsConfig",
 ]
 
-CLOUDINARY_STORAGE = {
-    'CLOUD_NAME': 'igprlpev',
-    'API_KEY': '744214298555878',
-    'API_SECRET': '4nIk6LoAn-Trmh2XfiglOYXmlXE',
+CLOUDINARY_STORAGE = {"PREFIX": ""}
+_cloudinary_credentials = {
+    "CLOUD_NAME": os.getenv("CLOUDINARY_CLOUD_NAME"),
+    "API_KEY": os.getenv("CLOUDINARY_API_KEY"),
+    "API_SECRET": os.getenv("CLOUDINARY_API_SECRET"),
 }
-DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
+if all(_cloudinary_credentials.values()):
+    CLOUDINARY_STORAGE.update(_cloudinary_credentials)
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",

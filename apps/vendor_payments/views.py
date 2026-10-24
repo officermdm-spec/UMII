@@ -40,7 +40,7 @@ def _payable_rows():
         .annotate(total=Sum("amount"))
     }
     rows = []
-    for vendor in Vendor.objects.filter(is_active=True).order_by("name"):
+    for vendor in Vendor.objects.filter(is_active=True).order_by("company_name"):
         purchases = purchase_map.get(vendor.pk, ZERO)
         paid = paid_map.get(vendor.pk, ZERO)
         rows.append(
@@ -64,7 +64,9 @@ class VendorPaymentListView(VendorPaymentsMixin, ListView):
         qs = VendorPayment.objects.select_related("vendor", "created_by")
         q = self.request.GET.get("q")
         if q:
-            qs = qs.filter(Q(vendor__name__icontains=q) | Q(reference__icontains=q))
+            qs = qs.filter(
+                Q(vendor__company_name__icontains=q) | Q(reference__icontains=q)
+            )
         return qs
 
     def get_context_data(self, **kwargs):
@@ -80,12 +82,42 @@ class VendorPaymentCreateView(VendorPaymentsMixin, CreateView):
     template_name = "staff/vendor_payments/form.html"
     success_url = reverse_lazy("vendor_payments:list")
 
+    def get_vendor(self):
+        if not hasattr(self, "_vendor"):
+            vendor_pk = self.kwargs.get("vendor_pk")
+            self._vendor = (
+                get_object_or_404(Vendor, pk=vendor_pk) if vendor_pk is not None else None
+            )
+        return self._vendor
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        vendor = self.get_vendor()
+        if vendor is not None:
+            kwargs["vendor"] = vendor
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["vendor"] = self.get_vendor()
+        return context
+
+    def get_success_url(self):
+        vendor = self.get_vendor()
+        if vendor is not None:
+            return reverse("vendors:detail", kwargs={"pk": vendor.pk})
+        return super().get_success_url()
+
     def form_valid(self, form):
         payment = form.save(commit=False)
+        self.object = payment
+        vendor = self.get_vendor()
+        if vendor is not None:
+            payment.vendor = vendor
         payment.created_by = self.request.user
         record_vendor_payment(payment, self.request.user)
         messages.success(self.request, "Vendor payment posted.")
-        return redirect(self.success_url)
+        return redirect(self.get_success_url())
 
 
 class VendorPaymentDetailView(VendorPaymentsMixin, DetailView):

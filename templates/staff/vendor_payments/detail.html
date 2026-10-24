@@ -18,6 +18,6 @@
   <p><span class="text-slate-500">Account:</span> {{ payment.payment_account }}</p>
   <p><span class="text-slate-500">Reference:</span> {{ payment.reference|default:"—" }}</p>
   <p><span class="text-slate-500">Status:</span> {{ payment.get_status_display }}</p>
-  <p><span class="text-slate-500">Notes:</span> {{ payment.notes|default:"—" }}</p>
+  <p><a class="text-brand-700" href="{% url 'vendors:detail' payment.vendor_id %}">Open vendor</a></p>
 </div>
 {% endblock %}

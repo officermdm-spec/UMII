@@ -8,6 +8,7 @@ from apps.accounts.permissions import MODULES
 from apps.accounts.tests import build_catalog
 from apps.accounting.models import AccountingPosting, JournalEntry, VendorPayment
 from apps.vendor_payments.services import record_vendor_payment, void_vendor_payment
+from apps.vendors.models import Vendor
 
 User = get_user_model()
 
@@ -83,3 +84,71 @@ class VendorPaymentModuleTests(TestCase):
         void_vendor_payment(payment, self.staff)
         self.assertEqual(VendorPayment.objects.filter(status=VendorPayment.Status.POSTED).count(), 0)
         self.assertEqual(AccountingPosting.objects.filter(event_key=f"vendor_payment:{payment.pk}").count(), 1)
+
+
+class VendorSpecificPaymentTests(TestCase):
+    def setUp(self):
+        self.vendor = Vendor.objects.create(company_name="Acme", phone="03001111111")
+        self.staff = User.objects.create_user(
+            username="vendor-ap",
+            password="pass12345",
+            user_type=User.UserType.STAFF,
+            allowed_modules=[MODULES.VENDORS, MODULES.VENDOR_PAYMENTS],
+        )
+        self.client.login(username="vendor-ap", password="pass12345")
+
+    def test_vendor_detail_has_vendor_specific_payment_flow(self):
+        form_url = reverse("vendor_payments:vendor_create", args=[self.vendor.pk])
+        response = self.client.get(form_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'name="vendor"')
+        self.assertNotContains(response, "Notes")
+        self.assertNotContains(response, '<select name="vendor"', html=False)
+
+        response = self.client.post(
+            form_url,
+            {
+                "vendor": self.vendor.pk,
+                "amount": "150.00",
+                "date": "2026-09-23",
+                "payment_account": "cash",
+                "reference": "CHQ-1",
+            },
+        )
+        payment = VendorPayment.objects.get()
+        self.assertEqual(payment.vendor, self.vendor)
+        self.assertEqual(response.url, reverse("vendors:detail", args=[self.vendor.pk]))
+
+        detail = self.client.get(response.url)
+        self.assertEqual(detail.status_code, 200)
+        self.assertContains(detail, "Record payment")
+        self.assertContains(detail, "150.00")
+
+    def test_general_payment_form_redirects_to_payment_list(self):
+        response = self.client.post(
+            reverse("vendor_payments:create"),
+            {
+                "vendor": self.vendor.pk,
+                "amount": "75.00",
+                "date": "2026-09-23",
+                "payment_account": "cash",
+                "reference": "",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse("vendor_payments:list"))
+
+    def test_vendor_payment_list_and_search_use_vendor_company_name(self):
+        payment = VendorPayment.objects.create(
+            vendor=self.vendor,
+            amount=Decimal("50.00"),
+            payment_account="cash",
+        )
+        response = self.client.get(reverse("vendor_payments:list"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Acme")
+
+        response = self.client.get(reverse("vendor_payments:list"), {"q": "Acme"})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, str(payment.pk))

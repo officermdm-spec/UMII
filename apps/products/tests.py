@@ -1,9 +1,11 @@
 from decimal import Decimal
 from datetime import timedelta
+from types import SimpleNamespace
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import TestCase
+from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
 from django.utils import timezone
 
@@ -299,6 +301,21 @@ class BrandAssetTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "brand/logo.png")
         self.assertContains(response, "brand/favicon")
+
+
+class ProductImageStorageTests(SimpleTestCase):
+    def test_cover_image_accepts_remote_storage_path_without_local_copy(self):
+        image = SimpleNamespace(
+            name="products/gallery/remote-image.webp",
+            storage=object(),
+        )
+        self.assertIs(Product()._usable_image(image), image)
+
+    def test_gallery_image_with_remote_storage_is_not_filtered_out(self):
+        field = ProductImage._meta.get_field("image")
+        with patch.object(field, "storage", object()):
+            image = ProductImage(image="products/gallery/remote-image.webp")
+            self.assertTrue(image.file_exists)
 
 
 class InventoryGuardTests(TestCase):

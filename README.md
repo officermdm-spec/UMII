@@ -551,7 +551,7 @@ P&L: Gross sales − product discounts − offer discounts − coupon discounts 
 - Order lines store `product_name`, `sku`, size/color, `unit_price`, discount splits, and FIFO `cogs_amount` snapshots.
 - Staff access is per user (allowed modules), not Django groups. Accounting URLs return 403 without the Accounting module.
 - Customers can only open their own orders, returns, and addresses.
-- Product photos should stay in git (`media/products/`) because Render’s disk is wiped on each deploy unless a persistent disk is attached. Barcode identity is the database value; the PNG is regenerated from it.
+- Product main and gallery image fields use Cloudinary when its credentials are configured; local `media/products/` files remain a fallback. Set `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and `CLOUDINARY_API_SECRET` on Render (or set `CLOUDINARY_URL`). Existing database image paths must refer to uploaded Cloudinary assets or matching local files. Barcode identity is the database value; the PNG is regenerated from it.
 
 ---
 
@@ -563,6 +563,7 @@ See `.env.example`. Common keys:
 | --- | --- |
 | `SECRET_KEY`, `DEBUG`, `ALLOWED_HOSTS`, `CSRF_TRUSTED_ORIGINS` | Security |
 | `DATABASE_URL` or `DB_*` | PostgreSQL |
+| `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` or `CLOUDINARY_URL` | Product image storage |
 | `EMAIL_HOST_*`, `EMAIL_HTTP_URL`, `EMAIL_HTTP_SECRET` | Password-reset mail |
 | `WHATSAPP_NUMBER` | Product-page chat link (digits only, e.g. `923001234567`) |
 | `SHIPPING_FLAT_RATE`, `TAX_PERCENT`, `CURRENCY` | Checkout totals |

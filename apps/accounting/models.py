@@ -170,7 +170,7 @@ class Expense(models.Model):
         ordering = ["-date", "-id"]
 
     def __str__(self):
-        return self.title
+        return f"{self.get_category_display()} - {self.date}"
 
 
 class OtherIncome(models.Model):

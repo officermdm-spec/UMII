@@ -1,11 +1,14 @@
 from django.contrib import messages
-from django.db.models import Q
+from django.db.models import Q, Sum
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
 
 from apps.accounts.mixins import ModulePermissionMixin, SafeDeleteMixin
-from apps.accounts.permissions import MODULES
+from apps.accounts.permissions import MODULES, can_write, has_module_permission
+from apps.accounting.coa import ZERO, money
+from apps.accounting.models import VendorPayment
 from apps.purchases.models import GRN, ProductPurchaseHistory
+from apps.purchases.models import GRNItem
 from apps.vendors.forms import VendorForm
 from apps.vendors.models import Vendor
 
@@ -62,6 +65,32 @@ class VendorDetailView(ModulePermissionMixin, DetailView):
         context["purchase_history"] = ProductPurchaseHistory.objects.filter(
             vendor=self.object
         ).select_related("product", "grn")[:50]
+        can_view_payments = has_module_permission(
+            self.request.user, MODULES.VENDOR_PAYMENTS
+        )
+        context["can_view_vendor_payments"] = can_view_payments
+        context["can_record_vendor_payment"] = can_view_payments and can_write(
+            self.request.user
+        )
+        if can_view_payments:
+            purchases = (
+                GRNItem.objects.filter(
+                    grn__vendor=self.object, grn__status=GRN.Status.APPROVED
+                ).aggregate(total=Sum("line_total"))["total"]
+                or ZERO
+            )
+            paid = (
+                VendorPayment.objects.filter(
+                    vendor=self.object, status=VendorPayment.Status.POSTED
+                ).aggregate(total=Sum("amount"))["total"]
+                or ZERO
+            )
+            context["vendor_payments"] = VendorPayment.objects.filter(
+                vendor=self.object
+            ).select_related("created_by")[:50]
+            context["vendor_purchases_total"] = money(purchases)
+            context["vendor_payments_total"] = money(paid)
+            context["vendor_outstanding"] = money(purchases - paid)
         return context
 
 

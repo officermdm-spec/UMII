@@ -330,7 +330,7 @@ def post_expense_event(expense, user=None):
     return post_journal(
         reference_type="expense",
         reference_id=expense.pk,
-        description=expense.title,
+        description=f"Expense: {expense.get_category_display()}",
         lines=[
             {"account": exp_code, "debit": amount, "credit": ZERO},
             {"account": cash_code, "debit": ZERO, "credit": amount},

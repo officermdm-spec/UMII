@@ -1,11 +1,12 @@
 from decimal import Decimal
 
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
 
 from apps.accounts.permissions import MODULES
 from apps.accounts.tests import build_catalog
+from apps.accounting.forms import ExpenseForm
 from apps.accounting.models import AccountingPosting, Expense, JournalEntry, OtherIncome
 from apps.accounting.services import account_balance, period_totals, post_sale_event
 from apps.customers.models import Address
@@ -27,6 +28,27 @@ User = get_user_model()
 
 class SessionDict(dict):
     modified = False
+
+
+class ExpenseFormTests(SimpleTestCase):
+    def test_expense_form_only_needs_category_and_transaction_details(self):
+        form = ExpenseForm(
+            data={
+                "category": Expense.Category.DELIVERY,
+                "amount": "100.00",
+                "date": "2026-10-24",
+                "payment_account": "cash",
+                "reference": "",
+                "description": "",
+            }
+        )
+
+        self.assertNotIn("title", form.fields)
+        self.assertNotIn("notes", form.fields)
+        self.assertTrue(form.is_valid(), form.errors)
+        expense = form.save(commit=False)
+        self.assertEqual(expense.title, "")
+        self.assertEqual(expense.notes, "")
 
 
 def make_request(user):

@@ -20,7 +20,7 @@ class JournalEntryAdmin(admin.ModelAdmin):
 
 @admin.register(Expense)
 class ExpenseAdmin(admin.ModelAdmin):
-    list_display = ("title", "category", "amount", "date", "status")
+    list_display = ("category", "amount", "date", "status")
 
 
 @admin.register(OtherIncome)
