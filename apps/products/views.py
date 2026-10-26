@@ -345,6 +345,7 @@ def _sync_product_variants(product):
         tax_percent=product.tax_percent,
         discount_percent=product.discount_percent,
         min_stock_level=product.min_stock_level,
+        color="",
     )
 
 
@@ -481,10 +482,11 @@ class StoreProductDetailView(DetailView):
         child_variants = [
             variant
             for variant in product._related_variants()
-            if variant.is_active
+            if variant.is_active and variant.get_available_stock() > 0
         ]
         context["variant_options"] = (
-            ([product] if product.size else []) + child_variants
+            ([product] if product.size and product.get_available_stock() > 0 else [])
+            + child_variants
             if product.has_variants
             else []
         )

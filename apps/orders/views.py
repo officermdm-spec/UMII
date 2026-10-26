@@ -49,7 +49,11 @@ class AddToCartView(View):
         variants = list(catalog_product.variants.filter(is_active=True))
         if catalog_product.has_variants:
             selected_id = request.POST.get("variant_id")
-            options = variants + ([catalog_product] if catalog_product.size else [])
+            options = [
+                option
+                for option in variants + ([catalog_product] if catalog_product.size else [])
+                if available_stock(option) > 0
+            ]
             selected = next(
                 (option for option in options if str(option.pk) == str(selected_id)),
                 None,

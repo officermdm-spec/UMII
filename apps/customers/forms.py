@@ -92,17 +92,19 @@ class CustomerProfileForm(TailwindFormMixin, forms.ModelForm):
     first_name = forms.CharField(max_length=150)
     last_name = forms.CharField(max_length=150)
     email = forms.EmailField()
-
     class Meta:
         model = CustomerProfile
-        fields = ["phone", "profile_image", "date_of_birth"]
-
+        fields = [ "date_of_birth","phone","profile_image"]
+        widgets = {
+            "date_of_birth": forms.DateInput(attrs={"type": "date"}),
+        }
     def __init__(self, *args, **kwargs):
         self.user = kwargs.pop("user")
         super().__init__(*args, **kwargs)
         self.fields["first_name"].initial = self.user.first_name
         self.fields["last_name"].initial = self.user.last_name
         self.fields["email"].initial = self.user.email
+        self.order_fields(["first_name", "last_name", "email", "phone", "date_of_birth", "profile_image"])
 
     def save(self, commit=True):
         profile = super().save(commit=False)

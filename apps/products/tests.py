@@ -59,13 +59,13 @@ class ProductVariantTests(TestCase):
         get_response = self.client.get(reverse("products:create"))
         prefix = get_response.context["variant_formset"].prefix
         self.assertNotIn("size", get_response.context["form"].fields)
-        self.assertNotIn("color", get_response.context["form"].fields)
+        self.assertIn("color", get_response.context["form"].fields)
         self.assertIn("size", get_response.context["variant_formset"].empty_form.fields)
-        self.assertIn("color", get_response.context["variant_formset"].empty_form.fields)
+        self.assertNotIn("color", get_response.context["variant_formset"].empty_form.fields)
         self.assertNotContains(get_response, 'name="size"')
-        self.assertNotContains(get_response, 'name="color"')
+        self.assertContains(get_response, 'name="color"')
         self.assertContains(get_response, f'name="{prefix}-0-size"')
-        self.assertContains(get_response, f'name="{prefix}-0-color"')
+        self.assertNotContains(get_response, f'name="{prefix}-0-color"')
         response = self.client.post(
             reverse("products:create"),
             {
@@ -76,7 +76,7 @@ class ProductVariantTests(TestCase):
                 "vendor": self.vendor.pk,
                 "brand": "",
                 "size": "",
-                "color": "",
+                "color": "Navy",
                 "unit": "pcs",
                 "discount_percent": "0",
                 "min_stock_level": "5",
@@ -87,7 +87,6 @@ class ProductVariantTests(TestCase):
                 f"{prefix}-MAX_NUM_FORMS": "1000",
                 f"{prefix}-0-sku": "",
                 f"{prefix}-0-size": "Small",
-                f"{prefix}-0-color": "",
                 f"{prefix}-0-is_active": "on",
             },
         )
@@ -99,6 +98,8 @@ class ProductVariantTests(TestCase):
             )
         parent = Product.objects.get(name="Everyday Tee", variant_parent__isnull=True)
         small = Product.objects.get(variant_parent=parent, size="Small")
+        self.assertEqual(parent.color, "Navy")
+        self.assertEqual(small.color, "")
         self.assertTrue(small.sku.startswith(parent.sku))
         self.assertEqual(small.selling_price, parent.selling_price)
         self.assertFalse(Inventory.objects.filter(product=small).exists())
@@ -111,6 +112,7 @@ class ProductVariantTests(TestCase):
             purchase_price=Decimal("500.00"),
             category=self.category,
             vendor=self.vendor,
+            color="Navy",
         )
         small = Product.objects.create(
             name=parent.name,
@@ -133,17 +135,38 @@ class ProductVariantTests(TestCase):
             transaction_type=StockTransaction.Type.CORRECTION,
             reference="TEE-S-OPEN",
         )
+        out_of_stock = Product.objects.create(
+            name=parent.name,
+            sku="TEE-L",
+            selling_price=parent.selling_price,
+            purchase_price=parent.purchase_price,
+            category=parent.category,
+            vendor=parent.vendor,
+            variant_parent=parent,
+            size="Large",
+        )
 
         detail = self.client.get(parent.get_absolute_url())
         self.assertEqual(detail.status_code, 200)
         self.assertContains(detail, "Small")
         self.assertContains(detail, "4 available")
+        self.assertContains(detail, "Navy")
+        self.assertContains(detail, "pcs")
+        self.assertNotContains(detail, "Large")
+        self.assertNotContains(detail, "Choose size / color")
 
         missing_size = self.client.post(
             reverse("orders_cart:add", args=[parent.pk]), {"quantity": 1}
         )
         self.assertEqual(missing_size.status_code, 302)
         self.assertNotIn(str(small.pk), self.client.session.get("cart", {}))
+
+        unavailable_size = self.client.post(
+            reverse("orders_cart:add", args=[parent.pk]),
+            {"quantity": 1, "variant_id": str(out_of_stock.pk)},
+        )
+        self.assertEqual(unavailable_size.status_code, 302)
+        self.assertNotIn(str(out_of_stock.pk), self.client.session.get("cart", {}))
 
         added = self.client.post(
             reverse("orders_cart:add", args=[parent.pk]),
@@ -153,6 +176,7 @@ class ProductVariantTests(TestCase):
         self.assertEqual(self.client.session["cart"][str(small.pk)], 2)
         cart = self.client.get(reverse("orders_cart:cart"))
         self.assertContains(cart, "Size: Small")
+        self.assertContains(cart, "Color: Navy")
 
     def test_parent_product_offers_apply_to_its_size_variants(self):
         parent = Product.objects.create(

@@ -498,7 +498,7 @@ def place_order(
             sku=product.sku,
             product_name=product.name,
             product_size=product.size,
-            product_color=product.color,
+            product_color=product.variant_parent.color if product.variant_parent_id else product.color,
             quantity=qty,
             unit_price=row["list_price"],
             discount=money(row["product_discount"] + row["coupon_discount"]),

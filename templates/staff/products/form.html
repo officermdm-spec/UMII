@@ -9,10 +9,10 @@
   {% if variant_formset %}
   <section class="space-y-4 rounded-xl border border-olive-200 bg-olive-50 p-4">
     <div>
-      <h2 class="font-semibold">Size and color variants</h2>
+      <h2 class="font-semibold">Size variants</h2>
       <p class="mt-1 text-sm text-slate-600">
-        Add each sellable size/color combination with its own SKU and stock. Price, product details, and photos are shared.
-        Size and color are managed here for each option. Stock for each option is managed separately in Inventory.
+        Add each sellable size with its own SKU and stock. Color, price, product details, and photos are shared.
+        Stock for each size is managed separately in Inventory.
       </p>
     </div>
     {{ variant_formset.management_form }}
@@ -46,7 +46,7 @@
   </section>
   {% elif object.variant_parent %}
     <p class="rounded-xl bg-sage-100 p-4 text-sm text-slate-600">
-      This is a size/color option for <a class="font-medium text-brand-700" href="{% url 'products:update' object.variant_parent.pk %}">{{ object.variant_parent.name }}</a>.
+      This is a size option for <a class="font-medium text-brand-700" href="{% url 'products:update' object.variant_parent.pk %}">{{ object.variant_parent.name }}</a>.
       Manage sibling options from the parent product.
     </p>
   {% endif %}

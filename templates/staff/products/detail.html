@@ -39,7 +39,7 @@
 </div>
 {% if product.variant_parent %}
   <p class="mt-4 rounded-xl bg-sage-100 p-4 text-sm">
-    This is the <strong>{{ product.size }}{% if product.color %} / {{ product.color }}{% endif %}</strong> option for
+    This is the <strong>{{ product.size }}</strong> option for
     <a class="font-medium text-brand-700" href="{% url 'products:detail' product.variant_parent.pk %}">{{ product.variant_parent.name }}</a>.
   </p>
 {% elif variants %}
@@ -54,13 +54,13 @@
     <div class="mt-3 divide-y">
       {% if product.size %}
         <div class="flex flex-wrap justify-between gap-2 py-2 text-sm">
-          <span>{{ product.size }}{% if product.color %} / {{ product.color }}{% endif %} · {{ product.sku }}</span>
+          <span>{{ product.size }} · {{ product.sku }}</span>
           <span>{{ product.get_available_stock }} {{ product.unit }} available</span>
         </div>
       {% endif %}
       {% for variant in variants %}
         <div class="flex flex-wrap justify-between gap-2 py-2 text-sm">
-          <span>{{ variant.size }}{% if variant.color %} / {{ variant.color }}{% endif %} · {{ variant.sku }}{% if not variant.is_active %} · Inactive{% endif %}</span>
+          <span>{{ variant.size }} · {{ variant.sku }}{% if not variant.is_active %} · Inactive{% endif %}</span>
           <span>{{ variant.get_available_stock }} {{ variant.unit }} available</span>
         </div>
       {% endfor %}

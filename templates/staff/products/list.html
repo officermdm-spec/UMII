@@ -12,7 +12,7 @@
           <td class="px-4 py-3">{{ p.sku }}</td>
           <td class="px-4 py-3 font-mono text-xs">{{ p.barcode }}</td>
           <td class="px-4 py-3">{{ p.name }}{% if p.variant_parent %}<span class="ml-1 text-xs text-slate-500">variant</span>{% elif p.has_variants %}<span class="ml-1 text-xs text-slate-500">style</span>{% endif %}</td>
-          <td class="px-4 py-3">{{ p.size|default:"—" }}{% if p.color %} / {{ p.color }}{% endif %}</td>
+          <td class="px-4 py-3">{{ p.size|default:"—" }}{% if p.variant_parent.color %} / {{ p.variant_parent.color }}{% elif p.color %} / {{ p.color }}{% endif %}</td>
           <td class="px-4 py-3">{{ p.category }}</td>
           <td class="px-4 py-3">
             {% if p.has_discount %}

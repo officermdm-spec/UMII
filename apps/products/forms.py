@@ -39,6 +39,7 @@ class ProductForm(TailwindFormMixin, forms.ModelForm):
         super().__init__(*args, **kwargs)
         if not self.instance.variant_parent_id:
             self.fields.pop("size")
+        else:
             self.fields.pop("color")
 
 
@@ -48,7 +49,6 @@ class ProductVariantForm(TailwindFormMixin, forms.ModelForm):
         fields = [
             "sku",
             "size",
-            "color",
             "is_active",
         ]
         widgets = {"sku": forms.TextInput(attrs={"placeholder": "Auto-generated if blank"})}
@@ -63,7 +63,7 @@ class ProductVariantForm(TailwindFormMixin, forms.ModelForm):
         if not self.instance.pk:
             return any(
                 (self.data.get(self.add_prefix(field)) or "").strip()
-                for field in ("sku", "size", "color")
+                for field in ("sku", "size")
             )
         return super().has_changed()
 
@@ -88,8 +88,9 @@ class ProductVariantForm(TailwindFormMixin, forms.ModelForm):
         variant.purchase_price = parent.purchase_price
         variant.discount_percent = parent.discount_percent
         variant.min_stock_level = parent.min_stock_level
+        variant.color = ""
         if not variant.sku:
-            suffix = "-".join(filter(None, (variant.size, variant.color)))
+            suffix = variant.size
             base_sku = slugify(f"{parent.sku}-{suffix}").upper()[:50]
             variant.sku = base_sku
             if Product.objects.filter(sku=variant.sku).exclude(pk=variant.pk).exists():
@@ -118,15 +119,13 @@ class BaseProductVariantFormSet(forms.BaseInlineFormSet):
             if not hasattr(form, "cleaned_data") or form.cleaned_data.get("DELETE"):
                 continue
             size = (form.cleaned_data.get("size") or "").strip().casefold()
-            color = (form.cleaned_data.get("color") or "").strip().casefold()
             if not size:
                 continue
-            key = (size, color)
-            if key in seen:
+            if size in seen:
                 raise forms.ValidationError(
-                    "Each size and color combination can only be added once."
+                    "Each size can only be added once."
                 )
-            seen.add(key)
+            seen.add(size)
 
 
 ProductVariantFormSet = inlineformset_factory(

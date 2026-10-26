@@ -29,7 +29,8 @@
                 </div>
                 <div>
                   <p class="font-semibold text-slate-800">{{ row.product.name }}</p>
-                  {% if row.product.size %}<p class="text-xs text-slate-600">Size: {{ row.product.size }}{% if row.product.color %} · {{ row.product.color }}{% endif %}</p>{% endif %}
+                  {% if row.product.size %}<p class="text-xs text-slate-600">Size: {{ row.product.size }}</p>{% endif %}
+                  {% if row.product.variant_parent.color %}<p class="text-xs text-slate-600">Color: {{ row.product.variant_parent.color }}</p>{% elif row.product.color %}<p class="text-xs text-slate-600">Color: {{ row.product.color }}</p>{% endif %}
                   <p class="text-xs text-slate-500">{{ row.product.sku }}</p>
                 </div>
               </div>
