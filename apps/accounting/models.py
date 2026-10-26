@@ -144,8 +144,6 @@ class Expense(models.Model):
     class Status(models.TextChoices):
         POSTED = "posted", "Posted"
         VOID = "void", "Void"
-
-    title = models.CharField(max_length=160)
     category = models.CharField(max_length=30, choices=Category.choices)
     amount = models.DecimalField(
         max_digits=12, decimal_places=2, validators=[MinValueValidator(Decimal("0.01"))]
@@ -155,7 +153,6 @@ class Expense(models.Model):
     reference = models.CharField(max_length=80, blank=True)
     description = models.TextField(blank=True)
     receipt = models.ImageField(upload_to="accounting/expenses/", blank=True, null=True)
-    notes = models.TextField(blank=True)
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.POSTED)
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,

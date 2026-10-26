@@ -13,11 +13,7 @@
   <a class="rounded-full border px-3 py-1.5" href="{% url 'accounting:report' 'purchases' %}">Purchases</a>
   <a class="rounded-full border px-3 py-1.5" href="{% url 'accounting:report' 'expenses' %}">Expenses</a>
   <a class="rounded-full border px-3 py-1.5" href="{% url 'accounting:report' 'inventory-valuation' %}">Inventory valuation</a>
-  <a class="rounded-full border px-3 py-1.5" href="{% url 'accounting:report' 'cash' %}">Cash</a>
-  <a class="rounded-full border px-3 py-1.5" href="{% url 'accounting:report' 'bank' %}">Bank</a>
-  <a class="rounded-full border px-3 py-1.5" href="{% url 'accounting:receivables' %}">Receivables</a>
   <a class="rounded-full border px-3 py-1.5" href="{% url 'vendor_payments:list' %}">Payables</a>
-  <a class="rounded-full border px-3 py-1.5" href="{% url 'accounting:ledger' %}">Ledger</a>
   <a class="rounded-full border px-3 py-1.5" href="{% url 'accounting:customer_statement' %}">Customer statement</a>
   <a class="rounded-full border px-3 py-1.5" href="{% url 'accounting:vendor_statement' %}">Vendor statement</a>
   <a class="rounded-full border px-3 py-1.5" href="{% url 'accounting:report' 'returns-refunds' %}">Returns</a>
@@ -35,7 +31,6 @@
     <div class="flex justify-between font-semibold"><span>Net sales</span><span>{{ totals.net_sales }}</span></div>
     <div class="flex justify-between"><span>COGS</span><span>- {{ totals.cogs }}</span></div>
     <div class="flex justify-between font-semibold"><span>Gross profit</span><span>{{ totals.gross_profit }}</span></div>
-    <div class="flex justify-between"><span>Other income</span><span>+ {{ totals.other_income }}</span></div>
     <div class="flex justify-between"><span>Operating expenses</span><span>- {{ totals.expenses }}</span></div>
     <div class="flex justify-between border-t pt-2 text-base font-semibold"><span>Net profit</span><span>{{ totals.net_profit }}</span></div>
   </div>

@@ -1,22 +1,20 @@
 from django.contrib import messages
 from django.db.models import Q, Sum
-from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
 from django.urls import reverse
-from django.views.generic import CreateView, DeleteView, DetailView, ListView, RedirectView, TemplateView, UpdateView, View
+from django.views.generic import CreateView, DeleteView, DetailView, ListView, RedirectView, TemplateView, UpdateView
 
 from apps.accounting.coa import BANK, CASH, WALLET, ZERO, money
 from apps.accounting.dates import parse_date_range
-from apps.accounting.forms import ExpenseForm, OtherIncomeForm
-from apps.accounting.models import Expense, JournalEntry, JournalLine, OtherIncome, VendorPayment
+from apps.accounting.forms import ExpenseForm
+from apps.accounting.models import Expense, JournalEntry, JournalLine, VendorPayment
 from apps.accounting.reconcile import run_reconciliation
 from apps.accounting.services import (
     account_balance,
     ensure_accounts,
     period_totals,
     post_expense_event,
-    post_other_income_event,
     reverse_event,
 )
 from apps.accounts.mixins import ModulePermissionMixin, SafeDeleteMixin
@@ -132,92 +130,6 @@ class ExpenseDeleteView(SafeDeleteMixin, AccountingMixin, DeleteView):
     def form_valid(self, form):
         reverse_event(f"expense:{self.object.pk}", self.request.user, reason=f"Delete expense {self.object.pk}")
         return super().form_valid(form)
-
-
-class OtherIncomeListView(AccountingMixin, ListView):
-    model = OtherIncome
-    template_name = "staff/accounting/income.html"
-    context_object_name = "incomes"
-    paginate_by = 20
-
-    def get_queryset(self):
-        qs = OtherIncome.objects.all()
-        start, end, _ = parse_date_range(self.request)
-        q = self.request.GET.get("q")
-        qs = qs.filter(date__gte=start, date__lte=end)
-        if q:
-            qs = qs.filter(Q(title__icontains=q) | Q(reference__icontains=q))
-        return qs
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["total"] = self.get_queryset().aggregate(s=Sum("amount"))["s"] or ZERO
-        return context
-
-
-class OtherIncomeCreateView(AccountingMixin, CreateView):
-    form_class = OtherIncomeForm
-    template_name = "staff/accounting/income_form.html"
-    success_url = reverse_lazy("accounting:income")
-
-    def form_valid(self, form):
-        self.object = form.save(commit=False)
-        self.object.created_by = self.request.user
-        self.object.save()
-        post_other_income_event(self.object, self.request.user)
-        messages.success(self.request, "Other income posted.")
-        return redirect(self.success_url)
-
-
-class OtherIncomeUpdateView(AccountingMixin, UpdateView):
-    model = OtherIncome
-    form_class = OtherIncomeForm
-    template_name = "staff/accounting/income_form.html"
-    success_url = reverse_lazy("accounting:income")
-
-    def get_form(self, form_class=None):
-        form = super().get_form(form_class)
-        for name in ("amount", "payment_account", "date"):
-            form.fields[name].disabled = True
-        return form
-
-    def form_valid(self, form):
-        self.object = form.save()
-        messages.success(self.request, "Other income details updated.")
-        return redirect(self.success_url)
-
-
-class OtherIncomeDeleteView(SafeDeleteMixin, AccountingMixin, DeleteView):
-    model = OtherIncome
-    template_name = "staff/confirm_delete.html"
-    success_url = reverse_lazy("accounting:income")
-    delete_success_message = "Other income deleted and ledger reversed."
-
-    def form_valid(self, form):
-        reverse_event(
-            f"other_income:{self.object.pk}",
-            self.request.user,
-            reason=f"Delete other income {self.object.pk}",
-        )
-        return super().form_valid(form)
-
-
-class LedgerView(AccountingMixin, ListView):
-    model = JournalEntry
-    template_name = "staff/accounting/ledger.html"
-    context_object_name = "journals"
-    paginate_by = 25
-
-    def get_queryset(self):
-        qs = JournalEntry.objects.prefetch_related("lines__account")
-        start, end, _ = parse_date_range(self.request)
-        q = self.request.GET.get("q")
-        qs = qs.filter(entry_at__date__gte=start, entry_at__date__lte=end)
-        if q:
-            qs = qs.filter(
-                Q(number__icontains=q) | Q(description__icontains=q) | Q(reference_id__icontains=q)
-            )
-        return qs
 
 
 class SalesListView(AccountingMixin, ListView):
@@ -350,11 +262,7 @@ class ReportView(AccountingMixin, TemplateView):
         context["title"] = slug.replace("-", " ").title()
         context["inventory_value"] = wac_inventory_value()
         context["fifo_inventory_value"] = layer_value()
-        if slug == "ledger":
-            context["journals"] = JournalEntry.objects.filter(
-                entry_at__date__gte=start, entry_at__date__lte=end
-            ).prefetch_related("lines__account")
-        elif slug == "sales":
+        if slug == "sales":
             context["orders"] = Order.objects.filter(
                 created_at__date__gte=start, created_at__date__lte=end
             ).exclude(status__in=[Order.Status.PENDING, Order.Status.CANCELLED])
@@ -503,22 +411,3 @@ class VendorStatementView(AccountingMixin, TemplateView):
             context["rows"] = rows
             context["balance"] = balance
         return context
-
-
-class LedgerExportView(AccountingMixin, View):
-    def get(self, request):
-        start, end, _ = parse_date_range(request)
-        lines = JournalLine.objects.filter(
-            journal__entry_at__date__gte=start,
-            journal__entry_at__date__lte=end,
-        ).select_related("journal", "account")
-        rows = ["Number,Date,Account,Debit,Credit,Description"]
-        for line in lines:
-            desc = line.journal.description.replace(",", " ")
-            rows.append(
-                f"{line.journal.number},{line.journal.entry_at.date()},{line.account.code} {line.account.name},"
-                f"{line.debit},{line.credit},{desc}"
-            )
-        response = HttpResponse("\n".join(rows), content_type="text/csv")
-        response["Content-Disposition"] = 'attachment; filename="ledger.csv"'
-        return response

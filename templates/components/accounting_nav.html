@@ -8,16 +8,10 @@
   {% if can_expenses %}
   <a href="{% url 'accounting:expenses' %}" class="rounded-full px-3 py-1.5 {% if 'expense' in name %}bg-brand-600 text-white{% else %}border bg-white text-slate-600 hover:border-brand-300{% endif %}">Expenses</a>
   {% endif %}
-  {% if can_accounting %}
-  <a href="{% url 'accounting:income' %}" class="rounded-full px-3 py-1.5 {% if 'income' in name %}bg-brand-600 text-white{% else %}border bg-white text-slate-600 hover:border-brand-300{% endif %}">Other income</a>
-  <a href="{% url 'accounting:cash_bank' %}" class="rounded-full px-3 py-1.5 {% if name == 'cash_bank' %}bg-brand-600 text-white{% else %}border bg-white text-slate-600 hover:border-brand-300{% endif %}">Cash &amp; bank</a>
-  <a href="{% url 'accounting:receivables' %}" class="rounded-full px-3 py-1.5 {% if name == 'receivables' or name == 'customer_statement' %}bg-brand-600 text-white{% else %}border bg-white text-slate-600 hover:border-brand-300{% endif %}">Receivables</a>
-  {% endif %}
   {% if can_vendor_payments %}
   <a href="{% url 'vendor_payments:list' %}" class="rounded-full px-3 py-1.5 {% if request.resolver_match.namespace == 'vendor_payments' or name == 'vendor_statement' %}bg-brand-600 text-white{% else %}border bg-white text-slate-600 hover:border-brand-300{% endif %}">Vendor payments</a>
   {% endif %}
   {% if can_accounting %}
-  <a href="{% url 'accounting:ledger' %}" class="rounded-full px-3 py-1.5 {% if name == 'ledger' %}bg-brand-600 text-white{% else %}border bg-white text-slate-600 hover:border-brand-300{% endif %}">Ledger</a>
   <a href="{% url 'accounting:report' 'profit-loss' %}" class="rounded-full px-3 py-1.5 {% if name == 'report' or name == 'reports' %}bg-brand-600 text-white{% else %}border bg-white text-slate-600 hover:border-brand-300{% endif %}">Reports</a>
   <a href="{% url 'accounting:report' 'returns-refunds' %}" class="rounded-full px-3 py-1.5 {% if slug == 'returns-refunds' %}bg-brand-600 text-white{% else %}border bg-white text-slate-600 hover:border-brand-300{% endif %}">Returns</a>
   <a href="{% url 'accounting:reconciliation' %}" class="rounded-full px-3 py-1.5 {% if name == 'reconciliation' %}bg-brand-600 text-white{% else %}border bg-white text-slate-600 hover:border-brand-300{% endif %}">Reconciliation</a>
