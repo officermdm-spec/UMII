@@ -162,7 +162,7 @@ class HttpsEmailBackend(BaseEmailBackend):
                     "text": message.body,
                     "html": html,
                     "from": message.from_email,
-                    "from_name": getattr(settings, "STORE_NAME", "FP Mart"),
+                    "from_name": getattr(settings, "STORE_NAME", "UMII"),
                 }
             ).encode("utf-8")
             request = urllib.request.Request(
