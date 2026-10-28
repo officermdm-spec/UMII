@@ -118,18 +118,6 @@ class ResilientSMTPBackend(EmailBackend):
         return None
 
 
-class _KeepPostRedirect(urllib.request.HTTPRedirectHandler):
-    def redirect_request(self, req, fp, code, msg, headers, newurl):
-        if code in (301, 302, 303, 307, 308) and req.get_method() == "POST":
-            return urllib.request.Request(
-                newurl,
-                data=req.data,
-                headers={k: v for k, v in req.header_items()},
-                method="POST",
-            )
-        return super().redirect_request(req, fp, code, msg, headers, newurl)
-
-
 class HttpsEmailBackend(BaseEmailBackend):
     """Send mail over HTTPS. Render blocks Gmail SMTP (465/587)."""
 
@@ -171,14 +159,23 @@ class HttpsEmailBackend(BaseEmailBackend):
                 headers={"Content-Type": "application/json"},
                 method="POST",
             )
-            opener = urllib.request.build_opener(_KeepPostRedirect)
+            opener = urllib.request.build_opener()
             try:
                 with opener.open(request, timeout=15) as response:
                     body = response.read().decode("utf-8", "replace")
-                if "unauthorized" in body.lower():
+                try:
+                    result = json.loads(body)
+                except json.JSONDecodeError as exc:
+                    raise OSError("Gmail bridge returned an invalid response") from exc
+                if not isinstance(result, dict):
+                    raise OSError("Gmail bridge returned an invalid response")
+                if result.get("status") == "unauthorized":
                     raise OSError("Gmail bridge rejected the secret")
-                if body.lower().startswith("error"):
-                    raise OSError(body)
+                if result.get("status") != "sent":
+                    detail = result.get("message")
+                    raise OSError(
+                        f"Gmail bridge could not send the email: {detail or 'unknown error'}"
+                    )
                 sent += 1
             except (OSError, TimeoutError) as exc:
                 logger.exception("HTTPS email send failed for %s", to_addr)

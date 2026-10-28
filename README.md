@@ -300,7 +300,15 @@ Figures come from posted journals + remaining cost layers:
 | Returns | `/returns/` |
 | Feedback history | `/reviews/feedback/history/` |
 
-On Render, Gmail SMTP is blocked. Deploy `scripts/gmail_bridge.gs` as a Google Apps Script web app and set `EMAIL_HTTP_URL` + `EMAIL_HTTP_SECRET`.
+On Render, Gmail SMTP is blocked. Deploy `scripts/gmail_bridge.gs` as a Google Apps Script web app:
+
+1. Set the Apps Script project property `SECRET`.
+2. Deploy it to execute as your Google account and allow access to anyone. Authorize Gmail access when Google prompts.
+3. Copy the deployed `/exec` URL to `EMAIL_HTTP_URL`.
+4. Set `EMAIL_HTTP_SECRET` to the exact same value as the Apps Script `SECRET` property.
+5. After changing the script, deploy a new version. Opening the `/exec` URL should return JSON with `"status":"active"`.
+
+The bridge returns a JSON `"status":"sent"` only after Gmail accepts the email. Delivery errors and secret mismatches are logged by the application.
 
 ---
 

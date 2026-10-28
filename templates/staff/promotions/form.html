@@ -64,7 +64,7 @@
       {% if form.products.field.queryset.exists %}
         {{ form.products }}
       {% else %}
-        <p class="text-slate-500">No inventory products yet. Add stock first, then come back.</p>
+        <p class="text-slate-500">No active products available yet. Add a product first, then come back.</p>
       {% endif %}
     </div>
     {{ form.products.errors }}

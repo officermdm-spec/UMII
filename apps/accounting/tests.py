@@ -1,13 +1,14 @@
 from decimal import Decimal
 
 from django.contrib.auth import get_user_model
+from django.db import connection
 from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
 
 from apps.accounts.permissions import MODULES
 from apps.accounts.tests import build_catalog
 from apps.accounting.forms import ExpenseForm
-from apps.accounting.models import AccountingPosting, Expense, JournalEntry, OtherIncome
+from apps.accounting.models import Account, AccountingPosting, Expense, JournalEntry
 from apps.accounting.services import account_balance, period_totals, post_sale_event
 from apps.customers.models import Address
 from apps.inventory.costing import layer_value
@@ -49,6 +50,48 @@ class ExpenseFormTests(SimpleTestCase):
         expense = form.save(commit=False)
         self.assertEqual(expense.title, "")
         self.assertEqual(expense.notes, "")
+
+
+class RemovedAccountingPagesTests(TestCase):
+    def setUp(self):
+        self.staff = User.objects.create_user(
+            username="accounting-ui",
+            password="test-pass-12345",
+            user_type=User.UserType.STAFF,
+            allowed_modules=[MODULES.ACCOUNTING],
+        )
+        self.client.force_login(self.staff)
+
+    def test_cash_bank_page_is_removed(self):
+        response = self.client.get("/staff/accounting/cash-bank/")
+        self.assertEqual(response.status_code, 404)
+
+    def test_tax_summary_report_is_removed(self):
+        response = self.client.get(reverse("accounting:report", args=["tax-summary"]))
+        self.assertEqual(response.status_code, 404)
+
+    def test_cash_and_bank_reports_are_removed(self):
+        for account in ("cash", "bank"):
+            with self.subTest(account=account):
+                response = self.client.get(reverse("accounting:report", args=[account]))
+                self.assertEqual(response.status_code, 404)
+
+    def test_dashboard_hides_cash_and_bank_but_keeps_accounting(self):
+        response = self.client.get(reverse("accounting:dashboard"))
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, ">Cash<")
+        self.assertNotContains(response, ">Bank<")
+        self.assertContains(response, "Total sales")
+        self.assertContains(response, "Inventory value")
+
+    def test_tax_summary_link_is_not_shown_in_reports(self):
+        response = self.client.get(reverse("accounting:report", args=["profit-loss"]))
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "Tax summary")
+
+    def test_other_income_table_and_unused_account_are_removed(self):
+        self.assertNotIn("accounting_otherincome", connection.introspection.table_names())
+        self.assertFalse(Account.objects.filter(code="4020").exists())
 
 
 def make_request(user):
@@ -218,21 +261,11 @@ class FifoAccountingTests(TestCase):
 
         post_expense_event(expense, self.staff)
         self.assertEqual(account_balance("1000"), Decimal("-100.00"))
-        OtherIncome.objects.create(
-            title="Scrap",
-            amount=Decimal("5000.00"),
-            payment_account="cash",
-            created_by=self.staff,
-        )
-        from apps.accounting.services import post_other_income_event
-
-        income = OtherIncome.objects.get(title="Scrap")
-        post_other_income_event(income, self.staff)
         from django.utils import timezone
 
         totals = period_totals(timezone.localdate(), timezone.localdate())
         self.assertEqual(totals["expenses"], Decimal("100.00"))
-        self.assertEqual(totals["other_income"], Decimal("5000.00"))
+        self.assertEqual(totals["net_profit"], Decimal("-100.00"))
 
     def test_permissions(self):
         other = User.objects.create_user(

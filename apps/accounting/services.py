@@ -13,7 +13,6 @@ from apps.accounting.coa import (
     DISC_PRODUCT,
     EXPENSE_ACCOUNT_MAP,
     INVENTORY,
-    OTHER_INCOME,
     PAYMENT_ACCOUNT_MAP,
     REFUND_PAYABLE,
     SALES,
@@ -340,22 +339,6 @@ def post_expense_event(expense, user=None):
     )
 
 
-def post_other_income_event(income, user=None):
-    cash_code = cash_account_code(payment_account=income.payment_account)
-    amount = money(income.amount)
-    return post_journal(
-        reference_type="other_income",
-        reference_id=income.pk,
-        description=income.title,
-        lines=[
-            {"account": cash_code, "debit": amount, "credit": ZERO},
-            {"account": OTHER_INCOME, "debit": ZERO, "credit": amount},
-        ],
-        user=user,
-        event_key=f"other_income:{income.pk}",
-    )
-
-
 def post_vendor_payment_event(payment, user=None):
     cash_code = cash_account_code(payment_account=payment.payment_account)
     amount = money(payment.amount)
@@ -408,7 +391,6 @@ def period_totals(start, end):
     coupon_discounts = net(DISC_COUPON)
     sales_returns = net(SALES_RETURNS)
     shipping = credit_net(SHIPPING)
-    other_income = credit_net(OTHER_INCOME)
     cogs = net(COGS)
     net_sales = money(gross_sales - product_discounts - offer_discounts - coupon_discounts - sales_returns)
     gross_profit = money(net_sales - cogs)
@@ -425,7 +407,7 @@ def period_totals(start, end):
         "5190",
     ]
     expenses = sum((net(code) for code in expense_codes), ZERO)
-    net_profit = money(gross_profit + other_income - expenses)
+    net_profit = money(gross_profit - expenses)
     return {
         "gross_sales": gross_sales,
         "product_discounts": product_discounts,
@@ -436,12 +418,8 @@ def period_totals(start, end):
         "cogs": cogs,
         "gross_profit": gross_profit,
         "shipping": shipping,
-        "other_income": other_income,
         "expenses": money(expenses),
         "net_profit": net_profit,
-        "cash": account_balance(CASH),
-        "bank": account_balance(BANK),
-        "wallet": account_balance(WALLET),
         "receivables": account_balance(AR),
         "payables": account_balance(AP),
         "inventory_account": account_balance(INVENTORY),

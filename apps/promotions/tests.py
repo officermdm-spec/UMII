@@ -1,6 +1,7 @@
 from datetime import timedelta
 from decimal import Decimal
 
+from django import forms
 from django.test import TestCase
 from django.utils import timezone
 
@@ -178,25 +179,6 @@ class PromotionTests(TestCase):
         self.assertEqual(promo.apply_to, Promotion.ApplyTo.PRODUCT)
         self.assertEqual(list(promo.products.all()), [self.product])
 
-    def test_form_lists_inventory_products_only(self):
-        from apps.inventory.services import ensure_inventory, get_default_warehouse
-        from apps.products.models import Product
-        from apps.promotions.forms import PromotionForm
-
-        ghost = Product.objects.create(
-            name="No stock row",
-            sku="ELE-404",
-            selling_price=Decimal("100.00"),
-            purchase_price=Decimal("40.00"),
-            category=self.product.category,
-            vendor=self.product.vendor,
-        )
-        ensure_inventory(self.product, get_default_warehouse())
-        form = PromotionForm()
-        pks = {item.pk for item in form.fields["products"].queryset}
-        self.assertIn(self.product.pk, pks)
-        self.assertNotIn(ghost.pk, pks)
-
     def test_staff_can_delete_coupon(self):
         from django.contrib.auth import get_user_model
         from django.urls import reverse
@@ -217,6 +199,155 @@ class PromotionTests(TestCase):
         response = self.client.post(reverse("promotions:delete", args=[self.promo.pk]))
         self.assertEqual(response.status_code, 302)
         self.assertFalse(Promotion.objects.filter(pk=self.promo.pk).exists())
+
+
+class PromotionProductChoiceTests(TestCase):
+    def setUp(self):
+        from apps.categories.models import Category
+        from apps.products.models import Product
+        from apps.vendors.models import Vendor
+
+        category = Category.objects.create(name="Electronics", slug="electronics")
+        vendor = Vendor.objects.create(company_name="Acme", phone="03001111111")
+        self.product = Product.objects.create(
+            name="Demo phone",
+            sku="ELE-101",
+            selling_price=Decimal("100.00"),
+            purchase_price=Decimal("40.00"),
+            category=category,
+            vendor=vendor,
+        )
+        self.inactive_product = Product.objects.create(
+            name="Inactive phone",
+            sku="ELE-102",
+            selling_price=Decimal("100.00"),
+            purchase_price=Decimal("40.00"),
+            category=category,
+            vendor=vendor,
+            is_active=False,
+        )
+
+    def test_coupon_and_offer_dropdowns_list_active_products_without_inventory(self):
+        from apps.promotions.forms import ProductOfferForm, PromotionForm
+
+        for form in (PromotionForm(), ProductOfferForm()):
+            with self.subTest(form=form.__class__.__name__):
+                choices = form.fields["products"]
+                product_ids = {product.pk for product in choices.queryset}
+                self.assertIn(self.product.pk, product_ids)
+                self.assertNotIn(self.inactive_product.pk, product_ids)
+                self.assertIsInstance(choices.widget, forms.SelectMultiple)
+                self.assertEqual(choices.widget.attrs["size"], 1)
+
+    def test_offer_type_form_fields_match_selected_discount_type(self):
+        from apps.promotions.forms import ProductOfferForm
+
+        now = timezone.now()
+        common_data = {
+            "name": "Test offer",
+            "products": [str(self.product.pk)],
+            "start_date": (now - timedelta(hours=1)).strftime("%Y-%m-%dT%H:%M"),
+            "end_date": (now + timedelta(days=7)).strftime("%Y-%m-%dT%H:%M"),
+            "is_active": "on",
+            "show_on_website": "on",
+        }
+
+        percentage_form = ProductOfferForm(
+            data={**common_data, "offer_type": "percentage", "value": "20"}
+        )
+        self.assertTrue(percentage_form.is_valid(), percentage_form.errors)
+
+        fixed_form = ProductOfferForm(
+            data={**common_data, "offer_type": "fixed", "value": "500"}
+        )
+        self.assertTrue(fixed_form.is_valid(), fixed_form.errors)
+
+        bxgy_form = ProductOfferForm(
+            data={
+                **common_data,
+                "offer_type": "buy_x_get_y",
+                "buy_qty": "2",
+                "get_qty": "1",
+            }
+        )
+        self.assertTrue(bxgy_form.is_valid(), bxgy_form.errors)
+        offer = bxgy_form.save()
+        self.assertEqual(offer.value, Decimal("0.00"))
+
+    def test_offer_form_renders_searchable_product_picker(self):
+        from django.contrib.auth.models import AnonymousUser
+        from django.test import RequestFactory
+        from django.template.loader import render_to_string
+
+        from apps.promotions.forms import ProductOfferForm
+
+        request = RequestFactory().get("/staff/promotions/offers/add/")
+        request.user = AnonymousUser()
+        request.session = {}
+        form = ProductOfferForm(
+            initial={
+                "offer_type": ProductOffer.OfferType.BUY_X_GET_Y,
+                "products": [self.product.pk],
+            }
+        )
+        html = render_to_string(
+            "staff/promotions/offer_form.html",
+            {"form": form, "object": None},
+            request=request,
+        )
+
+        self.assertIn('data-product-picker', html)
+        self.assertIn('data-product-search', html)
+        self.assertIn(self.product.name, html)
+        self.assertIn('value="{}"'.format(self.product.pk), html)
+        self.assertIn('id="offer-bxgy-wrap" class="grid', html)
+
+
+class CouponListUiTests(TestCase):
+    def test_coupon_list_uses_promotions_table_design(self):
+        from django.contrib.auth import get_user_model
+        from django.urls import reverse
+
+        from apps.accounts.permissions import MODULES
+        from apps.categories.models import Category
+        from apps.products.models import Product
+        from apps.vendors.models import Vendor
+
+        category = Category.objects.create(name="Electronics", slug="electronics")
+        vendor = Vendor.objects.create(company_name="Acme", phone="03001111111")
+        product = Product.objects.create(
+            name="Demo phone",
+            sku="ELE-201",
+            selling_price=Decimal("100.00"),
+            purchase_price=Decimal("40.00"),
+            category=category,
+            vendor=vendor,
+        )
+        now = timezone.now()
+        promotion = Promotion.objects.create(
+            name="Summer deal",
+            code="SUMMER10",
+            discount_type=Promotion.DiscountType.PERCENTAGE,
+            value=Decimal("10.00"),
+            start_date=now - timedelta(hours=1),
+            end_date=now + timedelta(days=7),
+        )
+        promotion.products.add(product)
+
+        user = get_user_model().objects.create_user(
+            username="coupon-list-staff",
+            password="test-pass-12345",
+            user_type=get_user_model().UserType.STAFF,
+            allowed_modules=[MODULES.PROMOTIONS],
+        )
+        self.client.force_login(user)
+        response = self.client.get(reverse("promotions:list"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "SUMMER10")
+        self.assertContains(response, "Demo phone")
+        self.assertContains(response, "Products")
+        self.assertContains(response, "Unlimited")
 
 
 class ProductOfferAndQuoteTests(TestCase):
@@ -383,4 +514,3 @@ class ProductOfferAndQuoteTests(TestCase):
         self.coupon.refresh_from_db()
         self.assertEqual(self.coupon.used_count, 0)
         self.assertFalse(PromotionUsage.objects.filter(order=order).exists())
-

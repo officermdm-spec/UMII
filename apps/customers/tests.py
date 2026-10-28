@@ -182,7 +182,7 @@ class HttpsEmailBackendTests(TestCase):
         from config.email import HttpsEmailBackend
 
         response = MagicMock()
-        response.read.return_value = b"ok"
+        response.read.return_value = b'{"status":"sent"}'
         response.__enter__.return_value = response
         response.__exit__.return_value = False
         opener = MagicMock()
@@ -200,4 +200,37 @@ class HttpsEmailBackendTests(TestCase):
             )
         self.assertEqual(sent, 1)
         opener.open.assert_called_once()
+        self.assertEqual(opener.open.call_args.kwargs["timeout"], 15)
 
+    @override_settings(EMAIL_HTTP_URL="https://example.com/exec", EMAIL_HTTP_SECRET="abc")
+    def test_rejects_bridge_errors_and_unexpected_responses(self):
+        from unittest.mock import MagicMock, patch
+
+        from django.core.mail import EmailMessage
+
+        from config.email import HttpsEmailBackend
+
+        for body in (
+            b'{"status":"unauthorized"}',
+            b'{"status":"error","message":"Gmail authorization required"}',
+            b"<html>Sign in</html>",
+        ):
+            with self.subTest(body=body):
+                response = MagicMock()
+                response.read.return_value = body
+                response.__enter__.return_value = response
+                response.__exit__.return_value = False
+                opener = MagicMock()
+                opener.open.return_value = response
+                with patch("urllib.request.build_opener", return_value=opener):
+                    with self.assertRaises(OSError):
+                        HttpsEmailBackend().send_messages(
+                            [
+                                EmailMessage(
+                                    "Reset",
+                                    "body",
+                                    "officermdm@gmail.com",
+                                    ["user@example.com"],
+                                )
+                            ]
+                        )

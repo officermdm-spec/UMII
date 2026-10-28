@@ -17,7 +17,6 @@
   <a class="rounded-full border px-3 py-1.5" href="{% url 'accounting:customer_statement' %}">Customer statement</a>
   <a class="rounded-full border px-3 py-1.5" href="{% url 'accounting:vendor_statement' %}">Vendor statement</a>
   <a class="rounded-full border px-3 py-1.5" href="{% url 'accounting:report' 'returns-refunds' %}">Returns</a>
-  <a class="rounded-full border px-3 py-1.5" href="{% url 'accounting:report' 'tax-summary' %}">Tax summary</a>
 </div>
 {% include "components/date_filter.html" %}
 
@@ -34,10 +33,6 @@
     <div class="flex justify-between"><span>Operating expenses</span><span>- {{ totals.expenses }}</span></div>
     <div class="flex justify-between border-t pt-2 text-base font-semibold"><span>Net profit</span><span>{{ totals.net_profit }}</span></div>
   </div>
-{% elif slug == 'cash' %}
-  <p class="mt-4 text-lg font-semibold">Cash: {{ totals.cash }}</p>
-{% elif slug == 'bank' %}
-  <p class="mt-4 text-lg font-semibold">Bank: {{ totals.bank }}</p>
 {% elif slug == 'inventory-valuation' %}
   <p class="mt-4 text-sm">Weighted-average stock value: <strong>{{ inventory_value }}</strong></p>
   <p class="mt-1 text-xs text-slate-500">FIFO remaining layers: {{ fifo_inventory_value }}</p>
@@ -53,8 +48,6 @@
       </tbody>
     </table>
   </div>
-{% elif slug == 'tax-summary' %}
-  <p class="mt-4 text-lg font-semibold">Tax collected: {{ tax_total }}</p>
 {% elif slug == 'cogs' or slug == 'sales' %}
   <div class="mt-4 overflow-x-auto rounded-2xl border bg-white">
     <table class="min-w-full text-sm">

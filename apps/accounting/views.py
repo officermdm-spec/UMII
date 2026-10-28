@@ -1,17 +1,17 @@
 from django.contrib import messages
 from django.db.models import Q, Sum
+from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
 from django.urls import reverse
 from django.views.generic import CreateView, DeleteView, DetailView, ListView, RedirectView, TemplateView, UpdateView
 
-from apps.accounting.coa import BANK, CASH, WALLET, ZERO, money
+from apps.accounting.coa import ZERO, money
 from apps.accounting.dates import parse_date_range
 from apps.accounting.forms import ExpenseForm
-from apps.accounting.models import Expense, JournalEntry, JournalLine, VendorPayment
+from apps.accounting.models import Expense, VendorPayment
 from apps.accounting.reconcile import run_reconciliation
 from apps.accounting.services import (
-    account_balance,
     ensure_accounts,
     period_totals,
     post_expense_event,
@@ -198,28 +198,6 @@ class PurchaseListView(AccountingMixin, ListView):
         return qs
 
 
-class CashBankView(AccountingMixin, TemplateView):
-    template_name = "staff/accounting/cash_bank.html"
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        start, end = context["range_start"], context["range_end"]
-        context["cash"] = account_balance(CASH, start, end)
-        context["bank"] = account_balance(BANK, start, end)
-        context["wallet"] = account_balance(WALLET, start, end)
-        context["lines"] = (
-            JournalLine.objects.filter(
-                account__code__in=[CASH, BANK, WALLET],
-                journal__status=JournalEntry.Status.POSTED,
-                journal__entry_at__date__gte=start,
-                journal__entry_at__date__lte=end,
-            )
-            .select_related("journal", "account")
-            .order_by("-journal__entry_at")[:200]
-        )
-        return context
-
-
 class ReceivablesView(AccountingMixin, TemplateView):
     template_name = "staff/accounting/receivables.html"
 
@@ -256,6 +234,8 @@ class ReportView(AccountingMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         slug = self.kwargs.get("slug") or self.report_slug
+        if slug in {"cash", "bank", "tax-summary"}:
+            raise Http404
         start, end = context["range_start"], context["range_end"]
         context["slug"] = slug
         context["totals"] = period_totals(start, end)
@@ -296,13 +276,6 @@ class ReportView(AccountingMixin, TemplateView):
                 for row in returns
             ]
             context["returns_total"] = context["totals"]["sales_returns"]
-        elif slug == "tax-summary":
-            context["tax_total"] = (
-                Order.objects.filter(created_at__date__gte=start, created_at__date__lte=end)
-                .exclude(status=Order.Status.CANCELLED)
-                .aggregate(s=Sum("tax"))["s"]
-                or ZERO
-            )
         elif slug == "inventory-valuation":
             from apps.inventory.models import Inventory
 

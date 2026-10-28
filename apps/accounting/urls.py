@@ -13,7 +13,6 @@ urlpatterns = [
     path("expenses/add/", views.ExpenseCreateView.as_view(), name="expense_create"),
     path("expenses/<int:pk>/edit/", views.ExpenseUpdateView.as_view(), name="expense_update"),
     path("expenses/<int:pk>/delete/", views.ExpenseDeleteView.as_view(), name="expense_delete"),
-    path("cash-bank/", views.CashBankView.as_view(), name="cash_bank"),
     path("receivables/", views.ReceivablesView.as_view(), name="receivables"),
     path("payables/", views.PayablesView.as_view(), name="payables"),
     path("reports/", views.ReportView.as_view(), name="reports"),

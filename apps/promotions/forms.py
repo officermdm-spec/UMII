@@ -10,9 +10,9 @@ from apps.promotions.models import ProductOffer, Promotion
 from config.forms import TailwindFormMixin
 
 
-def inventory_products():
+def promotable_products():
     return (
-        Product.objects.filter(is_active=True, inventories__isnull=False)
+        Product.objects.filter(is_active=True)
         .annotate(
             on_hand=Sum(F("inventories__current_stock") - F("inventories__reserved_stock"))
         )
@@ -42,7 +42,7 @@ def _stamp_datetime_fields(form, names=("start_date", "end_date")):
 
 
 def _bind_product_queryset(form):
-    products = inventory_products()
+    products = promotable_products()
     if form.instance.pk:
         products = (
             Product.objects.filter(Q(pk__in=products) | Q(pk__in=form.instance.products.all()))
@@ -60,8 +60,8 @@ class PromotionForm(TailwindFormMixin, forms.ModelForm):
     products = InventoryProductChoiceField(
         queryset=Product.objects.none(),
         required=False,
-        widget=forms.CheckboxSelectMultiple,
-        help_text="Tick products this coupon can discount. Leave empty to apply to the whole cart.",
+        widget=forms.SelectMultiple(attrs={"size": 1}),
+        help_text="Select one or more products (Ctrl/Cmd-click to select multiple). Leave empty to apply to the whole cart.",
     )
 
     class Meta:
@@ -164,8 +164,8 @@ class ProductOfferForm(TailwindFormMixin, forms.ModelForm):
     products = InventoryProductChoiceField(
         queryset=Product.objects.none(),
         required=True,
-        widget=forms.CheckboxSelectMultiple,
-        help_text="Tick every product this sale should cover.",
+        widget=forms.SelectMultiple(attrs={"size": 1}),
+        help_text="Select one or more products this sale should cover (Ctrl/Cmd-click to select multiple).",
     )
 
     class Meta:
@@ -197,7 +197,7 @@ class ProductOfferForm(TailwindFormMixin, forms.ModelForm):
         widgets = {
             "start_date": forms.DateTimeInput(attrs={"type": "datetime-local"}, format="%Y-%m-%dT%H:%M"),
             "end_date": forms.DateTimeInput(attrs={"type": "datetime-local"}, format="%Y-%m-%dT%H:%M"),
-            "offer_type": forms.RadioSelect,
+            "offer_type": forms.Select,
         }
 
     def __init__(self, *args, **kwargs):
@@ -211,6 +211,7 @@ class ProductOfferForm(TailwindFormMixin, forms.ModelForm):
         self.fields["value"].help_text = "Used for percentage and fixed amount offers."
         self.fields["buy_qty"].help_text = "Only for Buy X Get Y. Example: buy 2."
         self.fields["get_qty"].help_text = "Only for Buy X Get Y. Example: get 1 free."
+        self.fields["value"].required = False
         self.fields["buy_qty"].required = False
         self.fields["get_qty"].required = False
         for name in ("start_date", "end_date"):

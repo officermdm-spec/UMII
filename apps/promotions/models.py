@@ -29,7 +29,6 @@ class Promotion(models.Model):
     class ApplyTo(models.TextChoices):
         ALL = "all", "Entire Order"
         PRODUCT = "product", "Specific Products"
-        CATEGORY = "category", "Specific Categories"
 
     name = models.CharField("Offer name", max_length=150)
     code = models.CharField(max_length=40, unique=True, blank=True, null=True)
@@ -41,9 +40,6 @@ class Promotion(models.Model):
     apply_to = models.CharField(max_length=20, choices=ApplyTo.choices, default=ApplyTo.ALL)
     products = models.ManyToManyField(
         "products.Product", blank=True, related_name="promotions"
-    )
-    categories = models.ManyToManyField(
-        "categories.Category", blank=True, related_name="promotions"
     )
     start_date = models.DateTimeField()
     end_date = models.DateTimeField()

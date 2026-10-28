@@ -37,7 +37,7 @@ def live_promotions():
             code__isnull=False,
         )
         .exclude(code="")
-        .prefetch_related("products", "categories")
+        .prefetch_related("products")
     )
 
 
@@ -59,7 +59,7 @@ def get_coupon_by_code(code=None):
     return (
         Promotion.objects.filter(code__iexact=str(code).strip())
         .exclude(code="")
-        .prefetch_related("products", "categories")
+        .prefetch_related("products")
         .first()
     )
 
@@ -80,12 +80,6 @@ def _line_is_eligible(product, promotion, *, has_product_offer=False, allow_stac
     selected_ids = _selected_product_ids(promotion)
     if selected_ids:
         return product.pk in selected_ids or product.variant_parent_id in selected_ids
-    if promotion.apply_to == Promotion.ApplyTo.CATEGORY:
-        category_ids = {c.pk for c in promotion.categories.all()}
-        product_cat_ids = {product.category_id}
-        if product.category_id and getattr(product.category, "parent_id", None):
-            product_cat_ids.add(product.category.parent_id)
-        return bool(category_ids & product_cat_ids)
     if promotion.apply_to == Promotion.ApplyTo.ALL:
         return True
     return False

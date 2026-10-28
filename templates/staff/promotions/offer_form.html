@@ -4,57 +4,78 @@
 {% include "components/staff_header.html" with heading="Promotions" %}
 {% include "components/promotions_nav.html" %}
 <h2 class="mt-5 text-xl font-semibold">{% if object %}Edit product offer{% else %}New product offer{% endif %}</h2>
-<p class="mt-1 text-sm text-slate-500">Example: Summer Sale — 20% off selected products. Sale price shows on the product card while the offer is live.</p>
-<form method="post" class="mt-4 max-w-xl space-y-4 rounded-2xl border bg-white p-5" onsubmit="var b=this.querySelector('[data-submit]'); if(b){b.disabled=true; b.textContent='Saving…';}">
+<p class="mt-1 text-sm text-slate-500">Choose a discount type and products. Percentage and fixed discounts show as sale prices while the offer is live.</p>
+<form method="post" class="mt-4 max-w-2xl space-y-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6" onsubmit="var b=this.querySelector('[data-submit]'); if(b){b.disabled=true; b.textContent='Saving…';}">
   {% csrf_token %}
   {{ form.non_field_errors }}
-  <div>
+  <div class="space-y-1">
     <label class="text-sm font-medium" for="{{ form.name.id_for_label }}">{{ form.name.label }}</label>
     {{ form.name }}{{ form.name.errors }}
   </div>
-  <div>
-    <p class="text-sm font-medium">{{ form.offer_type.label }}</p>
-    <div class="mt-2 space-y-1 text-sm">{{ form.offer_type }}</div>
+  <div class="space-y-1">
+    <label class="text-sm font-medium" for="{{ form.offer_type.id_for_label }}">{{ form.offer_type.label }}</label>
+    {{ form.offer_type }}
     {{ form.offer_type.errors }}
   </div>
-  <div id="offer-value-wrap">
+  <div id="offer-value-wrap" class="{% if form.offer_type.value == 'buy_x_get_y' %}hidden {% endif %}space-y-1">
     <label class="text-sm font-medium" for="{{ form.value.id_for_label }}">{{ form.value.label }}</label>
     {{ form.value }}
     {% if form.value.help_text %}<p class="mt-1 text-xs text-slate-500">{{ form.value.help_text }}</p>{% endif %}
     {{ form.value.errors }}
   </div>
-  <div id="offer-bxgy-wrap" class="grid gap-4 sm:grid-cols-2">
-    <div>
+  <div id="offer-bxgy-wrap" class="{% if form.offer_type.value != 'buy_x_get_y' %}hidden {% endif %}grid gap-4 sm:grid-cols-2">
+    <div class="space-y-1">
       <label class="text-sm font-medium" for="{{ form.buy_qty.id_for_label }}">{{ form.buy_qty.label }}</label>
       {{ form.buy_qty }}
       {% if form.buy_qty.help_text %}<p class="mt-1 text-xs text-slate-500">{{ form.buy_qty.help_text }}</p>{% endif %}
       {{ form.buy_qty.errors }}
     </div>
-    <div>
+    <div class="space-y-1">
       <label class="text-sm font-medium" for="{{ form.get_qty.id_for_label }}">{{ form.get_qty.label }}</label>
       {{ form.get_qty }}
       {% if form.get_qty.help_text %}<p class="mt-1 text-xs text-slate-500">{{ form.get_qty.help_text }}</p>{% endif %}
       {{ form.get_qty.errors }}
     </div>
   </div>
-  <div>
+  <div class="space-y-1">
     <p class="text-sm font-medium">{{ form.products.label }}</p>
     {% if form.products.help_text %}<p class="mt-1 text-xs text-slate-500">{{ form.products.help_text }}</p>{% endif %}
-    <div class="mt-2 max-h-56 overflow-y-auto rounded-lg border border-slate-200 p-3 text-sm">
-      {% if form.products.field.queryset.exists %}
-        {{ form.products }}
+    {% if form.products.field.queryset.exists %}
+      {% with selected_products=form.products.value|default_if_none:"" %}
+      <details class="group relative mt-2" data-product-picker>
+        <summary class="flex cursor-pointer list-none items-center justify-between gap-3 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm hover:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/25">
+          <span><span data-product-count>0</span> products selected</span>
+          <span aria-hidden="true" class="text-slate-500 transition group-open:rotate-180">▼</span>
+        </summary>
+        <div class="absolute z-20 mt-2 w-full rounded-xl border border-slate-200 bg-white p-3 shadow-xl">
+          <label class="sr-only" for="offer-product-search">Search products</label>
+          <input id="offer-product-search" type="search" class="mb-2 block w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/25" placeholder="Search products..." data-product-search>
+          <div class="max-h-60 space-y-1 overflow-y-auto" data-product-options>
+            {% for product in form.products.field.queryset %}
+              <label class="flex cursor-pointer items-start gap-3 rounded-lg px-2 py-2 text-sm hover:bg-slate-50" data-product-option>
+                <input type="checkbox" name="{{ form.products.html_name }}" value="{{ product.pk }}" class="mt-0.5 h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500" data-product-checkbox {% if product.pk|stringformat:"s" in selected_products %}checked{% endif %}>
+                <span class="min-w-0 flex-1">
+                  <span class="block truncate font-medium text-slate-800">{{ product.name }}</span>
+                  <span class="text-xs text-slate-500">{{ product.sku }}{% if product.on_hand != None %} · {{ product.on_hand }} in stock{% endif %}</span>
+                </span>
+              </label>
+            {% endfor %}
+          </div>
+          <p class="hidden px-2 py-3 text-sm text-slate-500" data-product-empty>No matching products.</p>
+        </div>
+      </details>
+      {% endwith %}
       {% else %}
-        <p class="text-slate-500">No inventory products yet. Add stock first, then come back.</p>
-      {% endif %}
-    </div>
+      <p class="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-500">No active products available yet. Add a product first, then come back.</p>
+    {% endif %}
     {{ form.products.errors }}
   </div>
   <div class="grid gap-4 sm:grid-cols-2">
-    <div>
+    <div class="space-y-1">
       <label class="text-sm font-medium" for="{{ form.start_date.id_for_label }}">{{ form.start_date.label }}</label>
       {{ form.start_date }}{{ form.start_date.errors }}
     </div>
-    <div>
+    <div class="space-y-1">
       <label class="text-sm font-medium" for="{{ form.end_date.id_for_label }}">{{ form.end_date.label }}</label>
       {{ form.end_date }}{{ form.end_date.errors }}
     </div>
@@ -70,17 +91,48 @@
 </form>
 <script>
 (function () {
-  var radios = document.querySelectorAll('input[name="offer_type"]');
+  var offerType = document.getElementById("{{ form.offer_type.id_for_label }}");
   var valueWrap = document.getElementById("offer-value-wrap");
   var bxgyWrap = document.getElementById("offer-bxgy-wrap");
   function sync() {
-    var selected = document.querySelector('input[name="offer_type"]:checked');
-    var isBxgy = selected && selected.value === "buy_x_get_y";
+    var isBxgy = offerType && offerType.value === "buy_x_get_y";
     if (valueWrap) valueWrap.classList.toggle("hidden", !!isBxgy);
     if (bxgyWrap) bxgyWrap.classList.toggle("hidden", !isBxgy);
+    var valueInput = document.getElementById("{{ form.value.id_for_label }}");
+    var buyInput = document.getElementById("{{ form.buy_qty.id_for_label }}");
+    var getInput = document.getElementById("{{ form.get_qty.id_for_label }}");
+    if (valueInput) valueInput.required = !isBxgy;
+    if (buyInput) buyInput.required = !!isBxgy;
+    if (getInput) getInput.required = !!isBxgy;
   }
-  radios.forEach(function (el) { el.addEventListener("change", sync); });
+  if (offerType) offerType.addEventListener("change", sync);
   sync();
+
+  var picker = document.querySelector("[data-product-picker]");
+  if (picker) {
+    var search = picker.querySelector("[data-product-search]");
+    var options = Array.from(picker.querySelectorAll("[data-product-option]"));
+    var empty = picker.querySelector("[data-product-empty]");
+    var count = picker.querySelector("[data-product-count]");
+    function updateProducts() {
+      var selected = 0;
+      options.forEach(function (option) {
+        var checkbox = option.querySelector("[data-product-checkbox]");
+        if (checkbox.checked) selected += 1;
+        var matches = !search.value || option.textContent.toLowerCase().includes(search.value.toLowerCase());
+        option.classList.toggle("hidden", !matches);
+      });
+      count.textContent = selected;
+      empty.classList.toggle("hidden", options.some(function (option) {
+        return !option.classList.contains("hidden");
+      }));
+    }
+    search.addEventListener("input", updateProducts);
+    picker.querySelectorAll("[data-product-checkbox]").forEach(function (checkbox) {
+      checkbox.addEventListener("change", updateProducts);
+    });
+    updateProducts();
+  }
 })();
 </script>
 {% endblock %}

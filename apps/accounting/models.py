@@ -170,38 +170,6 @@ class Expense(models.Model):
         return f"{self.get_category_display()} - {self.date}"
 
 
-class OtherIncome(models.Model):
-    class Status(models.TextChoices):
-        POSTED = "posted", "Posted"
-        VOID = "void", "Void"
-
-    title = models.CharField(max_length=160)
-    amount = models.DecimalField(
-        max_digits=12, decimal_places=2, validators=[MinValueValidator(Decimal("0.01"))]
-    )
-    date = models.DateField(default=timezone.localdate)
-    payment_account = models.CharField(max_length=20, default="cash")
-    reference = models.CharField(max_length=80, blank=True)
-    description = models.TextField(blank=True)
-    attachment = models.FileField(upload_to="accounting/income/", blank=True, null=True)
-    notes = models.TextField(blank=True)
-    status = models.CharField(max_length=20, choices=Status.choices, default=Status.POSTED)
-    created_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="other_incomes",
-    )
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        ordering = ["-date", "-id"]
-
-    def __str__(self):
-        return self.title
-
-
 class VendorPayment(models.Model):
     class Status(models.TextChoices):
         POSTED = "posted", "Posted"
