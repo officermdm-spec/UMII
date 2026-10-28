@@ -165,8 +165,16 @@ class HttpsEmailBackend(BaseEmailBackend):
                     body = response.read().decode("utf-8", "replace")
                 try:
                     result = json.loads(body)
-                except json.JSONDecodeError as exc:
-                    raise OSError("Gmail bridge returned an invalid response") from exc
+                except json.JSONDecodeError:
+                    legacy_response = body.strip().lower()
+                    if legacy_response in {"ok", "ok fine"}:
+                        sent += 1
+                        continue
+                    if legacy_response == "unauthorized":
+                        raise OSError("Gmail bridge rejected the secret")
+                    if legacy_response.startswith("error:"):
+                        raise OSError(f"Gmail bridge could not send the email: {body.strip()}")
+                    raise OSError("Gmail bridge returned an invalid response")
                 if not isinstance(result, dict):
                     raise OSError("Gmail bridge returned an invalid response")
                 if result.get("status") == "unauthorized":

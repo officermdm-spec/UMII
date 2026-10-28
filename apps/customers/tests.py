@@ -203,6 +203,35 @@ class HttpsEmailBackendTests(TestCase):
         self.assertEqual(opener.open.call_args.kwargs["timeout"], 15)
 
     @override_settings(EMAIL_HTTP_URL="https://example.com/exec", EMAIL_HTTP_SECRET="abc")
+    def test_accepts_legacy_bridge_success_responses(self):
+        from unittest.mock import MagicMock, patch
+
+        from django.core.mail import EmailMessage
+
+        from config.email import HttpsEmailBackend
+
+        for body in (b"ok", b"ok fine"):
+            with self.subTest(body=body):
+                response = MagicMock()
+                response.read.return_value = body
+                response.__enter__.return_value = response
+                response.__exit__.return_value = False
+                opener = MagicMock()
+                opener.open.return_value = response
+                with patch("urllib.request.build_opener", return_value=opener):
+                    sent = HttpsEmailBackend().send_messages(
+                        [
+                            EmailMessage(
+                                "Reset",
+                                "body",
+                                "officermdm@gmail.com",
+                                ["user@example.com"],
+                            )
+                        ]
+                    )
+                self.assertEqual(sent, 1)
+
+    @override_settings(EMAIL_HTTP_URL="https://example.com/exec", EMAIL_HTTP_SECRET="abc")
     def test_rejects_bridge_errors_and_unexpected_responses(self):
         from unittest.mock import MagicMock, patch
 
