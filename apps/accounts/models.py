@@ -16,7 +16,7 @@ class StaffModule(models.TextChoices):
     ORDERS = "orders", "Orders"
     RETURNS = "returns", "Returns"
     REVIEWS = "reviews", "Reviews"
-    PROMOTIONS = "promotions", "Promotions"
+    PROMOTIONS = "promotions", "Product Offers"
     PAYMENTS = "payments", "Payments"
     PAYMENT_METHODS = "payment_methods", "Payment Methods"
     ACCOUNTING = "accounting", "Accounting"

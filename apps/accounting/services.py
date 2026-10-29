@@ -8,7 +8,7 @@ from apps.accounting.coa import (
     BANK,
     CASH,
     COGS,
-    DISC_COUPON,
+    DISC_ORDER_DISCOUNT,
     DISC_OFFER,
     DISC_PRODUCT,
     EXPENSE_ACCOUNT_MAP,
@@ -215,7 +215,7 @@ def post_sale_event(order, user=None):
     gross = money(sum((item.unit_price * item.quantity for item in order.items.all()), ZERO))
     catalog = money(order.catalog_discount)
     offer = money(order.offer_discount)
-    coupon = money(order.discount)
+    historical_discount = money(order.discount)
     shipping = money(order.shipping_charge)
     tax = money(order.tax)
     cogs = money(order.cogs_total)
@@ -224,7 +224,7 @@ def post_sale_event(order, user=None):
         {"account": AR, "debit": ar, "credit": ZERO, "memo": order.order_number},
         {"account": DISC_PRODUCT, "debit": catalog, "credit": ZERO},
         {"account": DISC_OFFER, "debit": offer, "credit": ZERO},
-        {"account": DISC_COUPON, "debit": coupon, "credit": ZERO},
+        {"account": DISC_ORDER_DISCOUNT, "debit": historical_discount, "credit": ZERO},
         {"account": SALES, "debit": ZERO, "credit": gross},
         {"account": SHIPPING, "debit": ZERO, "credit": shipping},
         {"account": TAX_PAYABLE, "debit": ZERO, "credit": tax},
@@ -296,24 +296,27 @@ def _line_return_share(item):
     gross = money(order_item.unit_price * item.quantity)
     catalog = money(order_item.catalog_discount * ratio)
     offer = money(order_item.offer_discount * ratio)
-    coupon = money(order_item.coupon_discount * ratio)
-    net = money(gross - catalog - offer - coupon)
+    other_discount = money(
+        max(order_item.discount - order_item.catalog_discount - order_item.offer_discount, ZERO)
+        * ratio
+    )
+    net = money(gross - catalog - offer - other_discount)
     cogs = (
         money(order_item.cogs_amount * ratio)
         if item.condition == ReturnItem.Condition.RESELLABLE
         else ZERO
     )
-    return gross, catalog, offer, coupon, net, cogs
+    return gross, catalog, offer, other_discount, net, cogs
 
 
 def post_return_event(return_request, user=None):
-    gross = catalog = offer = coupon = net = cogs = ZERO
+    gross = catalog = offer = other_discount = net = cogs = ZERO
     for item in return_request.items.select_related("order_item"):
-        g, cat, off, coup, n, c = _line_return_share(item)
+        g, cat, off, other, n, c = _line_return_share(item)
         gross += g
         catalog += cat
         offer += off
-        coupon += coup
+        other_discount += other
         net += n
         cogs += c
     order = return_request.order
@@ -401,11 +404,11 @@ def period_totals(start, end):
     gross_sales = credit_net(SALES)
     product_discounts = net(DISC_PRODUCT)
     offer_discounts = net(DISC_OFFER)
-    coupon_discounts = net(DISC_COUPON)
+    order_discounts = net(DISC_ORDER_DISCOUNT)
     sales_returns = net(SALES_RETURNS)
     shipping = credit_net(SHIPPING)
     cogs = net(COGS)
-    net_sales = money(gross_sales - product_discounts - offer_discounts - coupon_discounts - sales_returns)
+    net_sales = money(gross_sales - product_discounts - offer_discounts - order_discounts - sales_returns)
     gross_profit = money(net_sales - cogs)
     expense_codes = [
         "5100",
@@ -425,7 +428,7 @@ def period_totals(start, end):
         "gross_sales": gross_sales,
         "product_discounts": product_discounts,
         "offer_discounts": offer_discounts,
-        "coupon_discounts": coupon_discounts,
+        "order_discounts": order_discounts,
         "sales_returns": sales_returns,
         "net_sales": net_sales,
         "cogs": cogs,

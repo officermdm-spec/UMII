@@ -54,7 +54,6 @@ class OrderAdmin(admin.ModelAdmin):
         "shipping_charge",
         "tax",
         "grand_total",
-        "coupon_code",
         "created_at",
         "updated_at",
     )
@@ -82,7 +81,6 @@ class OrderAdmin(admin.ModelAdmin):
                     "shipping_charge",
                     "tax",
                     "grand_total",
-                    "coupon_code",
                 )
             },
         ),

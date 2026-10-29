@@ -17,7 +17,6 @@ from apps.products.barcode import (
 )
 from apps.products.forms import BrandForm, ProductForm, ProductVariantFormSet
 from apps.products.models import Brand, Product, ProductImage
-from apps.promotions.services import live_promotions
 
 
 class ProductListView(ModulePermissionMixin, ListView):
@@ -380,7 +379,6 @@ class StoreHomeView(ListView):
                 "variants__inventories",
             )[:4]
         )
-        context["live_promotions"] = live_promotions()[:8]
         return context
 
 

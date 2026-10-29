@@ -2,7 +2,6 @@ from decimal import Decimal
 
 from django.conf import settings
 from django.db import transaction
-from django.db.models import F
 from django.utils import timezone
 
 from apps.inventory.models import Inventory, StockTransaction
@@ -17,14 +16,7 @@ from apps.orders.cart import cart_items, clear_cart
 from apps.orders.models import Order, OrderItem, OrderStatusHistory
 from apps.payments.models import PaymentMethod
 from apps.payments.services import create_payment_for_order
-from apps.promotions.models import Promotion, PromotionUsage
-from apps.promotions.services import (
-    applied_coupon_code,
-    clear_applied_coupon,
-    money,
-    quote_promotions,
-    restore_coupon_usage,
-)
+from apps.promotions.services import money, quote_product_offers
 from config.utils import next_document_number
 
 
@@ -417,7 +409,6 @@ def place_order(
     shipping_address,
     payment_method,
     notes="",
-    coupon_code="",
     payment_proof=None,
 ):
     items = cart_items(request)
@@ -450,8 +441,7 @@ def place_order(
         warehouse = warehouse_map[max(warehouse_qty, key=warehouse_qty.get)]
     planned_by_product = {product.pk: parts for product, parts in planned}
 
-    code = (coupon_code or applied_coupon_code(request) or "").strip()
-    quote = quote_promotions(items, coupon_code=code or None, user=request.user)
+    quote = quote_product_offers(items)
     shipping = settings.SHIPPING_FLAT_RATE if items else Decimal("0.00")
     taxable = quote["merchandise_total"]
     tax = money(taxable * settings.TAX_PERCENT / Decimal("100"))
@@ -463,13 +453,12 @@ def place_order(
         payment_status=Order.PaymentStatus.PENDING,
         status=Order.Status.PENDING,
         subtotal=quote["subtotal"],
-        discount=quote["coupon_discount"],
+        discount=Decimal("0.00"),
         catalog_discount=Decimal("0.00"),
         offer_discount=Decimal("0.00"),
         shipping_charge=shipping,
         tax=tax,
         grand_total=grand_total,
-        coupon_code=quote["coupon_code"],
         fulfillment_warehouse=warehouse,
         notes=notes,
         **_copy_address("billing", billing_address),
@@ -502,13 +491,11 @@ def place_order(
             product_color=product.variant_parent.color if product.variant_parent_id else product.color,
             quantity=qty,
             unit_price=row["list_price"],
-            discount=money(row["product_discount"] + row["coupon_discount"]),
+            discount=money(row["product_discount"]),
             tax=Decimal("0.00"),
             total=row["line_total"],
-            promo_percent=row["promo_percent"] or Decimal("0.00"),
             catalog_discount=catalog_discount,
             offer_discount=offer_discount,
-            coupon_discount=row["coupon_discount"],
         )
         try:
             parts = planned_by_product.get(product.pk) or allocate_stock(product, qty)
@@ -529,21 +516,6 @@ def place_order(
     order.offer_discount = money(offer_total)
     order.save(update_fields=["catalog_discount", "offer_discount", "updated_at"])
 
-    promotion = quote["coupon"]
-    if promotion:
-        locked = Promotion.objects.select_for_update().get(pk=promotion.pk)
-        if locked.usage_limit is not None and locked.used_count >= locked.usage_limit:
-            raise OrderError("This coupon has reached its usage limit.")
-        per_customer = locked.usage_limit_per_customer
-        if per_customer:
-            used = PromotionUsage.objects.filter(promotion=locked, customer=request.user).count()
-            if used >= per_customer:
-                raise OrderError("You have already used this coupon the allowed number of times.")
-        PromotionUsage.objects.create(
-            promotion=locked, customer=request.user, order=order
-        )
-        Promotion.objects.filter(pk=locked.pk).update(used_count=F("used_count") + 1)
-
     create_payment_for_order(
         order,
         payment_method,
@@ -551,7 +523,6 @@ def place_order(
         proof_image=payment_proof if payment_method.code != PaymentMethod.Code.COD else None,
     )
     add_status_history(order, Order.Status.PENDING, request.user, "Order placed")
-    clear_applied_coupon(request)
     clear_cart(request)
     return order
 
@@ -572,9 +543,6 @@ def change_order_status(order, new_status, user=None, note=""):
     locked.status = new_status
     locked.save(update_fields=["status", "updated_at"])
     add_status_history(locked, new_status, user, note)
-
-    if new_status == Order.Status.CANCELLED:
-        restore_coupon_usage(locked)
 
     if new_status == Order.Status.DELIVERED:
         issue_invoice(locked)

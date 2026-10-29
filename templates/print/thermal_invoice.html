@@ -152,7 +152,6 @@
               {{ item.product_name }}
               {% if item.product_size %}<div class="muted">Size: {{ item.product_size }}{% if item.product_color %} / {{ item.product_color }}{% endif %}</div>{% endif %}
               <div class="muted">{{ item.sku }} @ {{ item.unit_price|intcomma }}</div>
-              {% if item.has_promo %}<div class="muted">{{ order.coupon_code }} {{ item.promo_percent|floatformat:0 }}% off</div>{% endif %}
             </td>
             <td class="qty">{{ item.quantity }}</td>
             <td class="amt">{{ item.total|intcomma }}</td>
@@ -171,7 +170,6 @@
     <hr class="rule">
     <div>Pay: {{ order.payment_method_code|upper }} · {{ order.get_payment_status_display }}</div>
     <div>Status: {{ order.get_status_display }}</div>
-    {% if order.coupon_code %}<div>Coupon: {{ order.coupon_code }}</div>{% endif %}
     <div class="center barcode">{{ invoice_number }}</div>
     <p class="center muted">Thank you for shopping{% if site_name %} at {{ site_name }}{% endif %}.</p>
     <p class="center muted">Goods once sold are returnable as per store policy.</p>

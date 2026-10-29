@@ -19,7 +19,7 @@ STAFF_NAV = [
     {"module": MODULES.PAYMENT_METHODS, "label": "Payment Methods", "url_name": "payments:methods", "namespace": "payments"},
     {"module": MODULES.RETURNS, "label": "Returns", "url_name": "returns_staff:list", "namespace": "returns_staff"},
     {"module": MODULES.REVIEWS, "label": "Reviews", "url_name": "reviews_staff:list", "namespace": "reviews_staff"},
-    {"module": MODULES.PROMOTIONS, "label": "Promotions", "url_name": "promotions:list", "namespace": "promotions"},
+    {"module": MODULES.PROMOTIONS, "label": "Product Offers", "url_name": "promotions:offer_list", "namespace": "promotions"},
     {"module": MODULES.ACCOUNTING, "label": "Accounting", "url_name": "accounting:dashboard", "namespace": "accounting"},
 ]
 

@@ -75,7 +75,6 @@
     <p class="mt-2 flex justify-between"><span>Tax</span><span>{{ currency }} {{ summary.tax|intcomma }}</span></p>
     <div class="my-4 border-t border-dashed border-slate-200"></div>
     <p class="flex justify-between text-base font-bold"><span>Grand total</span><span class="text-brand-700">{{ currency }} {{ summary.grand_total|intcomma }}</span></p>
-    <p class="mt-3 text-xs text-slate-500">Have a coupon? Add it on the checkout page.</p>
     <a href="{% url 'orders_checkout:checkout' %}" class="btn-primary mt-3 flex w-full py-3 text-center font-semibold">Continue to checkout</a>
     <a href="{% url 'store:product_list' %}" class="mt-3 block text-center text-sm font-medium text-slate-500 hover:text-brand-700">Continue shopping</a>
   </div>

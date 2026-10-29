@@ -1,8 +1,7 @@
 {% extends "staff/base.html" %}
 {% block staff_title %}Product offers{% endblock %}
 {% block content %}
-{% include "components/staff_header.html" with heading="Promotions" create_url="/staff/promotions/offers/add/" %}
-{% include "components/promotions_nav.html" %}
+{% include "components/staff_header.html" with heading="Product offers" create_url="/staff/promotions/offers/add/" %}
 <p class="mt-2 text-sm text-slate-500">Timed sales on products. After the end date the offer stops automatically.</p>
 <div class="mt-4 overflow-x-auto rounded-2xl border bg-white">
   <table class="min-w-full text-sm">

@@ -213,8 +213,6 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SECURE_HSTS_SECONDS = int(os.getenv("SECURE_HSTS_SECONDS", "31536000" if not DEBUG else "0"))
 SECURE_HSTS_INCLUDE_SUBDOMAINS = not DEBUG
 SECURE_HSTS_PRELOAD = not DEBUG
-# If False, a coupon cannot reduce a line that already has a product offer.
-ALLOW_COUPON_WITH_PRODUCT_OFFER = env_bool("ALLOW_COUPON_WITH_PRODUCT_OFFER", False)
 CSRF_TRUSTED_ORIGINS = [
     origin.strip()
     for origin in os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",")
@@ -251,5 +249,3 @@ SHIPPING_FLAT_RATE = Decimal(os.getenv("SHIPPING_FLAT_RATE", "150.00"))
 TAX_PERCENT = Decimal(os.getenv("TAX_PERCENT", "0.00"))
 CURRENCY = os.getenv("CURRENCY", "PKR")
 DEFAULT_WAREHOUSE_CODE = os.getenv("DEFAULT_WAREHOUSE_CODE", "MAIN")
-# Safe default: a checkout coupon does not stack on a line that already has a product offer.
-ALLOW_COUPON_WITH_PRODUCT_OFFER = env_bool("ALLOW_COUPON_WITH_PRODUCT_OFFER", False)

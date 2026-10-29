@@ -1,8 +1,7 @@
 {% extends "staff/base.html" %}
 {% block staff_title %}Product offer{% endblock %}
 {% block content %}
-{% include "components/staff_header.html" with heading="Promotions" %}
-{% include "components/promotions_nav.html" %}
+{% include "components/staff_header.html" with heading="Product offers" %}
 <h2 class="mt-5 text-xl font-semibold">{% if object %}Edit product offer{% else %}New product offer{% endif %}</h2>
 <p class="mt-1 text-sm text-slate-500">Choose a discount type and products. Percentage and fixed discounts show as sale prices while the offer is live.</p>
 <form method="post" class="mt-4 max-w-2xl space-y-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6" onsubmit="var b=this.querySelector('[data-submit]'); if(b){b.disabled=true; b.textContent='Saving…';}">

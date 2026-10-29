@@ -6,12 +6,7 @@ from django.db.models import Sum
 
 from apps.orders.models import CartItem
 from apps.products.models import Product
-from apps.promotions.services import (
-    PromotionError,
-    applied_coupon_code,
-    clear_applied_coupon,
-    quote_promotions,
-)
+from apps.promotions.services import quote_product_offers
 
 SESSION_CART_KEY = "cart"
 
@@ -125,34 +120,23 @@ def cart_items(request):
     return items
 
 
-def cart_summary(request, discount=Decimal("0.00"), coupon_code=None):
+def cart_summary(request):
     items = cart_items(request)
-    code = applied_coupon_code(request) if coupon_code is None else (coupon_code or "")
-    user = getattr(request, "user", None)
-    try:
-        quote = quote_promotions(items, coupon_code=code or None, user=user)
-    except PromotionError:
-        if coupon_code is None and code:
-            clear_applied_coupon(request)
-        quote = quote_promotions(items, coupon_code=None, user=user)
+    request.session.pop("applied_coupon", None)
+    quote = quote_product_offers(items)
     shipping = settings.SHIPPING_FLAT_RATE if items else Decimal("0.00")
-    taxable = quote["merchandise_total"]
-    tax = (taxable * settings.TAX_PERCENT / Decimal("100")).quantize(Decimal("0.01"))
-    grand_total = taxable + shipping + tax
+    tax = (quote["merchandise_total"] * settings.TAX_PERCENT / Decimal("100")).quantize(Decimal("0.01"))
+    grand_total = quote["merchandise_total"] + shipping + tax
     return {
         "items": quote["items"],
         "subtotal": quote["subtotal"],
         "list_subtotal": quote["list_subtotal"],
         "product_discount": quote["product_discount"],
-        "coupon_discount": quote["coupon_discount"],
-        "discount": quote["coupon_discount"],
+        "discount": quote["discount"],
         "shipping": shipping,
         "tax": tax,
         "grand_total": grand_total,
         "item_count": sum(row["quantity"] for row in quote["items"]),
-        "coupon_code": quote["coupon_code"],
-        "coupon": quote["coupon"],
-        "allow_stack": quote["allow_stack"],
     }
 
 

@@ -1,9 +1,7 @@
-from datetime import timedelta
 from decimal import Decimal
 
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
-from django.utils import timezone
 from django.utils.text import slugify
 
 from apps.accounts.models import StaffModule, User
@@ -12,7 +10,6 @@ from apps.inventory.models import Warehouse
 from apps.inventory.services import get_default_warehouse, record_stock_transaction
 from apps.inventory.models import StockTransaction
 from apps.products.models import Brand, Product
-from apps.promotions.models import Promotion
 from apps.vendors.models import Vendor
 
 
@@ -125,22 +122,6 @@ class Command(BaseCommand):
                     notes="Demo opening stock",
                 )
 
-        now = timezone.now()
-        Promotion.objects.get_or_create(
-            code="WELCOME10",
-            defaults={
-                "name": "Welcome 10%",
-                "discount_type": Promotion.DiscountType.PERCENTAGE,
-                "value": Decimal("10.00"),
-                "apply_to": Promotion.ApplyTo.ALL,
-                "start_date": now,
-                "end_date": now + timedelta(days=90),
-                "min_order_amount": Decimal("1000.00"),
-                "max_discount": Decimal("1500.00"),
-                "usage_limit": 1000,
-                "is_active": True,
-            },
-        )
         self.stdout.write(self.style.SUCCESS("Demo catalog ready."))
         self.stdout.write("Staff login: manager / manager123")
         self.stdout.write("Customer login: customer / customer123")

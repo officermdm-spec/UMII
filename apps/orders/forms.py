@@ -17,7 +17,6 @@ class CheckoutForm(TailwindFormMixin, forms.Form):
         help_text="Upload a payment screenshot for online / wallet / bank payments.",
         validators=[validate_upload_image],
     )
-    coupon_code = forms.CharField(required=False)
     notes = forms.CharField(required=False, widget=forms.Textarea)
 
     def __init__(self, *args, **kwargs):

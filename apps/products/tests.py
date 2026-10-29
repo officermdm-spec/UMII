@@ -15,7 +15,7 @@ from apps.categories.models import Category
 from apps.inventory.models import Inventory
 from apps.inventory.services import available_stock, ensure_inventory, get_default_warehouse
 from apps.products.models import Brand, Product, ProductImage
-from apps.promotions.models import ProductOffer, Promotion
+from apps.promotions.models import ProductOffer
 from apps.vendors.models import Vendor
 
 User = get_user_model()
@@ -64,8 +64,10 @@ class ProductVariantTests(TestCase):
         self.assertNotIn("color", get_response.context["variant_formset"].empty_form.fields)
         self.assertNotContains(get_response, 'name="size"')
         self.assertContains(get_response, 'name="color"')
-        self.assertContains(get_response, f'name="{prefix}-0-size"')
-        self.assertNotContains(get_response, f'name="{prefix}-0-color"')
+        self.assertContains(get_response, f'name="{prefix}-__prefix__-size"')
+        self.assertNotContains(get_response, f'name="{prefix}-__prefix__-color"')
+        self.assertContains(get_response, "Add another option")
+        self.assertContains(get_response, "Remove option")
         response = self.client.post(
             reverse("products:create"),
             {
@@ -86,7 +88,7 @@ class ProductVariantTests(TestCase):
                 f"{prefix}-MIN_NUM_FORMS": "0",
                 f"{prefix}-MAX_NUM_FORMS": "1000",
                 f"{prefix}-0-sku": "",
-                f"{prefix}-0-size": "Small",
+                f"{prefix}-0-size": "S",
                 f"{prefix}-0-is_active": "on",
             },
         )
@@ -97,12 +99,131 @@ class ProductVariantTests(TestCase):
                 f"variant formset errors: {response.context['variant_formset'].non_form_errors()}"
             )
         parent = Product.objects.get(name="Everyday Tee", variant_parent__isnull=True)
-        small = Product.objects.get(variant_parent=parent, size="Small")
+        small = Product.objects.get(variant_parent=parent, size="S")
         self.assertEqual(parent.color, "Navy")
         self.assertEqual(small.color, "")
         self.assertTrue(small.sku.startswith(parent.sku))
         self.assertEqual(small.selling_price, parent.selling_price)
         self.assertFalse(Inventory.objects.filter(product=small).exists())
+
+    def test_staff_variant_size_field_is_a_fixed_apparel_dropdown(self):
+        from django import forms
+
+        from apps.products.forms import ProductVariantForm
+
+        form = ProductVariantForm()
+        self.assertIsInstance(form.fields["size"], forms.ChoiceField)
+        self.assertEqual(
+            [value for value, _ in form.fields["size"].choices],
+            ["", "XS", "S", "M", "L", "XL", "XXL", "XXXL"],
+        )
+
+    def test_variant_with_blank_size_is_rejected(self):
+        self.client.force_login(self.staff)
+        response = self.client.post(
+            reverse("products:create"),
+            {
+                "name": "Blank Size Tee",
+                "selling_price": "1000.00",
+                "purchase_price": "500.00",
+                "category": self.category.pk,
+                "vendor": self.vendor.pk,
+                "brand": "",
+                "color": "Navy",
+                "unit": "pcs",
+                "discount_percent": "0",
+                "min_stock_level": "5",
+                "description": "",
+                "variants-TOTAL_FORMS": "1",
+                "variants-INITIAL_FORMS": "0",
+                "variants-MIN_NUM_FORMS": "0",
+                "variants-MAX_NUM_FORMS": "1000",
+                "variants-0-sku": "",
+                "variants-0-size": "",
+                "variants-0-is_active": "on",
+                "variants-0-DELETE": "",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(Product.objects.filter(name="Blank Size Tee").exists())
+        self.assertIn(
+            "Enter a size for every variant, or remove the empty option.",
+            response.context["variant_formset"].non_form_errors(),
+        )
+
+    def test_empty_variant_can_be_removed_before_saving_parent(self):
+        self.client.force_login(self.staff)
+        response = self.client.post(
+            reverse("products:create"),
+            {
+                "name": "Removed Option Tee",
+                "selling_price": "1000.00",
+                "purchase_price": "500.00",
+                "category": self.category.pk,
+                "vendor": self.vendor.pk,
+                "brand": "",
+                "color": "Navy",
+                "unit": "pcs",
+                "discount_percent": "0",
+                "min_stock_level": "5",
+                "description": "",
+                "variants-TOTAL_FORMS": "1",
+                "variants-INITIAL_FORMS": "0",
+                "variants-MIN_NUM_FORMS": "0",
+                "variants-MAX_NUM_FORMS": "1000",
+                "variants-0-sku": "",
+                "variants-0-size": "",
+                "variants-0-is_active": "on",
+                "variants-0-DELETE": "on",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        parent = Product.objects.get(name="Removed Option Tee", variant_parent__isnull=True)
+        self.assertFalse(parent.variants.exists())
+
+    def test_existing_variant_cannot_be_updated_with_blank_size(self):
+        parent = Product.objects.create(
+            name="Everyday Tee",
+            sku="TEE-BASE-EDIT",
+            selling_price=Decimal("1000.00"),
+            purchase_price=Decimal("500.00"),
+            category=self.category,
+            vendor=self.vendor,
+            color="Navy",
+        )
+        variant = Product.objects.create(
+            name=parent.name,
+            sku="TEE-M-EDIT",
+            selling_price=parent.selling_price,
+            purchase_price=parent.purchase_price,
+            category=parent.category,
+            vendor=parent.vendor,
+            variant_parent=parent,
+            size="Medium",
+        )
+        from apps.products.forms import ProductForm
+
+        form = ProductForm(
+            data={
+                "name": parent.name,
+                "selling_price": "1000.00",
+                "purchase_price": "500.00",
+                "category": self.category.pk,
+                "vendor": self.vendor.pk,
+                "brand": "",
+                "size": "",
+                "unit": "pcs",
+                "discount_percent": "0",
+                "min_stock_level": "5",
+                "description": "",
+            },
+            instance=variant,
+        )
+
+        self.assertFalse(form.is_valid())
+        self.assertIn("Enter a size for this product variant.", form.errors["size"])
 
     def test_customer_selects_size_and_cart_uses_variant_stock(self):
         parent = Product.objects.create(
@@ -150,6 +271,10 @@ class ProductVariantTests(TestCase):
         self.assertEqual(detail.status_code, 200)
         self.assertContains(detail, "Small")
         self.assertContains(detail, "4 available")
+        self.assertContains(detail, 'type="radio"')
+        self.assertContains(detail, f'value="{small.pk}"')
+        self.assertNotContains(detail, f'value="{out_of_stock.pk}"')
+        self.assertNotContains(detail, "<select")
         self.assertContains(detail, "Navy")
         self.assertContains(detail, "pcs")
         self.assertNotContains(detail, "Large")
@@ -206,22 +331,6 @@ class ProductVariantTests(TestCase):
         )
         offer.products.add(parent)
         self.assertEqual(variant.effective_price, Decimal("900.00"))
-
-        coupon = Promotion.objects.create(
-            name="Tee coupon",
-            code="TEE10",
-            discount_type=Promotion.DiscountType.PERCENTAGE,
-            value=Decimal("10.00"),
-            apply_to=Promotion.ApplyTo.PRODUCT,
-            start_date=now - timedelta(hours=1),
-            end_date=now + timedelta(hours=1),
-            min_order_amount=Decimal("0.00"),
-        )
-        coupon.products.add(parent)
-        from apps.promotions.services import _line_is_eligible
-
-        self.assertTrue(_line_is_eligible(variant, coupon))
-
 
 class ProductImageTests(TestCase):
     def setUp(self):

@@ -59,18 +59,29 @@
     <form method="post" action="{% url 'orders_cart:add' product.pk %}" class="mt-7 flex flex-wrap gap-3">
       {% csrf_token %}
       {% if product.has_variants %}
-        <label class="w-full text-sm font-medium" for="variant-id">Choose size
-          <select id="variant-id" name="variant_id" required class="modern-input mt-1.5 w-full rounded-xl border border-sky-100 bg-slate-50 px-3 py-3">
-            <option value="" selected disabled>Select an available option</option>
+        <fieldset class="w-full">
+          <legend class="text-sm font-medium">Choose available size</legend>
+          <div class="mt-2 flex flex-wrap gap-2">
             {% for variant in variant_options %}
-              <option value="{{ variant.pk }}" data-stock="{{ variant.get_available_stock }}">
-                {{ variant.size }} — {{ variant.get_available_stock }} available
-              </option>
+              <label class="cursor-pointer">
+                <input
+                  type="radio"
+                  name="variant_id"
+                  value="{{ variant.pk }}"
+                  data-stock="{{ variant.get_available_stock }}"
+                  class="peer sr-only"
+                  required
+                >
+                <span class="inline-flex min-w-14 flex-col items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-brand-400 peer-checked:border-brand-600 peer-checked:bg-brand-50 peer-checked:text-brand-700 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-brand-600">
+                  {{ variant.size }}
+                  <span class="text-xs font-normal text-slate-500">{{ variant.get_available_stock }} available</span>
+                </span>
+              </label>
             {% empty %}
-              <option value="" disabled>No sizes currently available</option>
+              <p class="text-sm text-red-600">No sizes are currently available.</p>
             {% endfor %}
-          </select>
-        </label>
+          </div>
+        </fieldset>
         <p id="variant-stock" class="w-full text-sm text-slate-500" aria-live="polite">Select a size to check availability.</p>
       {% endif %}
       <input id="product-quantity" aria-label="Quantity" type="number" name="quantity" min="1" max="{% if not product.has_variants %}{{ product.get_available_stock }}{% endif %}" value="1" class="modern-input w-24 rounded-xl border border-sky-100 bg-slate-50 px-3 py-3">
@@ -95,21 +106,22 @@
 </section>
 <script>
   (function () {
-    const variantSelect = document.getElementById("variant-id");
-    if (variantSelect) {
+    const variantInputs = document.querySelectorAll('input[name="variant_id"][data-stock]');
+    if (variantInputs.length) {
       const quantity = document.getElementById("product-quantity");
       const button = document.getElementById("add-to-cart");
       const stockMessage = document.getElementById("variant-stock");
-      variantSelect.addEventListener("change", function () {
-        const option = variantSelect.options[variantSelect.selectedIndex];
-        const available = Number(option.dataset.stock || 0);
-        quantity.max = String(available);
-        quantity.value = "1";
-        quantity.disabled = available < 1;
-        button.disabled = available < 1;
-        stockMessage.textContent = available
-          ? available + " unit(s) available in this option."
-          : "This option is currently out of stock.";
+      variantInputs.forEach(function (input) {
+        input.addEventListener("change", function () {
+          const available = Number(input.dataset.stock || 0);
+          quantity.max = String(available);
+          quantity.value = "1";
+          quantity.disabled = available < 1;
+          button.disabled = available < 1;
+          stockMessage.textContent = available
+            ? available + " unit(s) available in this option."
+            : "This option is currently out of stock.";
+        });
       });
     }
     const main = document.getElementById("product-main-image");

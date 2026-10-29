@@ -7,7 +7,7 @@ from django.views.generic import DeleteView, DetailView, FormView, ListView, Tem
 from apps.accounts.mixins import CustomerRequiredMixin, ModulePermissionMixin, SafeDeleteMixin
 from apps.accounts.permissions import MODULES
 from apps.inventory.services import available_stock
-from apps.orders.cart import add_to_cart, cart_items, cart_summary, remove_from_cart, set_quantity
+from apps.orders.cart import add_to_cart, cart_summary, remove_from_cart, set_quantity
 from apps.orders.forms import CheckoutForm, OrderPaymentStatusForm, OrderStatusForm
 from apps.orders.models import Order
 from apps.orders.services import (
@@ -21,13 +21,6 @@ from apps.orders.services import (
 from apps.payments.models import PaymentMethod
 from apps.payments.services import PaymentError, set_order_payment_status
 from apps.products.models import Product
-from apps.promotions.services import (
-    PromotionError,
-    live_promotions,
-    quote_promotions,
-    set_applied_coupon,
-    clear_applied_coupon,
-)
 from config.utils import safe_internal_url
 
 
@@ -122,18 +115,11 @@ class CheckoutView(CustomerRequiredMixin, FormView):
         context = super().get_context_data(**kwargs)
         summary = cart_summary(self.request)
         context["summary"] = summary
-        context["coupon_code"] = summary.get("coupon_code") or ""
-        context["live_promotions"] = live_promotions()[:5]
         context["payment_method_codes"] = {
             str(m.pk): m.code
             for m in PaymentMethod.objects.filter(is_active=True)
         }
         return context
-
-    def get_initial(self):
-        initial = super().get_initial()
-        initial["coupon_code"] = cart_summary(self.request).get("coupon_code") or ""
-        return initial
 
     def form_valid(self, form):
         billing = form.cleaned_data["billing_address"]
@@ -145,37 +131,13 @@ class CheckoutView(CustomerRequiredMixin, FormView):
                 shipping_address=shipping,
                 payment_method=form.cleaned_data["payment_method"],
                 notes=form.cleaned_data.get("notes", ""),
-                coupon_code=form.cleaned_data.get("coupon_code", ""),
                 payment_proof=form.cleaned_data.get("payment_proof"),
             )
-        except (OrderError, PromotionError) as exc:
+        except OrderError as exc:
             form.add_error(None, str(exc))
             return self.form_invalid(form)
         messages.success(self.request, f"Order {order.order_number} placed successfully.")
         return redirect("orders_customer:detail", pk=order.pk)
-
-
-class ApplyCouponView(CustomerRequiredMixin, View):
-    def post(self, request):
-        code = (request.POST.get("coupon_code") or "").strip()
-        if not code:
-            messages.error(request, "Enter a coupon code.")
-            return redirect("orders_checkout:checkout")
-        try:
-            quote_promotions(cart_items(request), coupon_code=code, user=request.user)
-        except PromotionError as exc:
-            messages.error(request, str(exc))
-            return redirect("orders_checkout:checkout")
-        set_applied_coupon(request, code)
-        messages.success(request, f"Coupon {code.upper()} applied.")
-        return redirect("orders_checkout:checkout")
-
-
-class RemoveCouponView(CustomerRequiredMixin, View):
-    def post(self, request):
-        clear_applied_coupon(request)
-        messages.info(request, "Coupon removed.")
-        return redirect("orders_checkout:checkout")
 
 
 class CustomerOrderListView(CustomerRequiredMixin, ListView):

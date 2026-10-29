@@ -6,7 +6,7 @@ from django.db.models import F, Q, Sum
 from django.utils import timezone
 
 from apps.products.models import Product
-from apps.promotions.models import ProductOffer, Promotion
+from apps.promotions.models import ProductOffer
 from config.forms import TailwindFormMixin
 
 
@@ -54,110 +54,6 @@ def _bind_product_queryset(form):
         )
     form.fields["products"].queryset = products
     form.fields["products"].widget.attrs["class"] = "grid gap-2 text-sm"
-
-
-class PromotionForm(TailwindFormMixin, forms.ModelForm):
-    products = InventoryProductChoiceField(
-        queryset=Product.objects.none(),
-        required=False,
-        widget=forms.SelectMultiple(attrs={"size": 1}),
-        help_text="Select one or more products (Ctrl/Cmd-click to select multiple). Leave empty to apply to the whole cart.",
-    )
-
-    class Meta:
-        model = Promotion
-        fields = [
-            "name",
-            "code",
-            "discount_type",
-            "value",
-            "min_order_amount",
-            "max_discount",
-            "usage_limit",
-            "usage_limit_per_customer",
-            "products",
-            "start_date",
-            "end_date",
-            "is_active",
-            "show_on_website",
-        ]
-        labels = {
-            "name": "Offer name",
-            "code": "Coupon code",
-            "discount_type": "Discount type",
-            "value": "Discount value",
-            "min_order_amount": "Minimum order amount",
-            "max_discount": "Maximum discount",
-            "usage_limit": "Usage limit",
-            "usage_limit_per_customer": "Usage limit per customer",
-            "products": "Applicable products",
-            "start_date": "Starts",
-            "end_date": "Ends",
-            "is_active": "Active",
-            "show_on_website": "Show on website",
-        }
-        widgets = {
-            "start_date": forms.DateTimeInput(attrs={"type": "datetime-local"}, format="%Y-%m-%dT%H:%M"),
-            "end_date": forms.DateTimeInput(attrs={"type": "datetime-local"}, format="%Y-%m-%dT%H:%M"),
-            "code": forms.TextInput(attrs={"placeholder": "SAVE10", "style": "text-transform:uppercase"}),
-            "discount_type": forms.RadioSelect,
-        }
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        _stamp_datetime_fields(self)
-        _bind_product_queryset(self)
-        if not self.instance.pk:
-            self.fields["is_active"].initial = True
-            self.fields["show_on_website"].initial = True
-            self.fields["usage_limit_per_customer"].initial = 1
-            self.fields["discount_type"].initial = Promotion.DiscountType.PERCENTAGE
-        self.fields["code"].help_text = "Customers type this at checkout. Example: SAVE10."
-        self.fields["value"].help_text = "10 means 10% or Rs. 10, depending on the type."
-        self.fields["min_order_amount"].help_text = "Cart must reach this amount after product offers."
-        self.fields["max_discount"].help_text = "Optional cap, mainly for percentage coupons."
-        self.fields["usage_limit"].help_text = "Leave blank for unlimited total redemptions."
-        self.fields["usage_limit_per_customer"].help_text = "Leave blank for unlimited uses per customer."
-        for name in ("start_date", "end_date"):
-            self.fields[name].input_formats = ["%Y-%m-%dT%H:%M", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M"]
-
-    def clean_code(self):
-        code = (self.cleaned_data.get("code") or "").strip().upper()
-        if not code:
-            raise forms.ValidationError("Coupon code is required.")
-        return code
-
-    def clean_value(self):
-        value = self.cleaned_data.get("value")
-        if value is None or value <= 0:
-            raise forms.ValidationError("Enter a discount greater than zero.")
-        return value
-
-    def clean(self):
-        cleaned = super().clean()
-        start = cleaned.get("start_date")
-        end = cleaned.get("end_date")
-        if start and end and end <= start:
-            self.add_error("end_date", "End date must be after the start date.")
-        discount_type = cleaned.get("discount_type")
-        value = cleaned.get("value")
-        if discount_type == Promotion.DiscountType.PERCENTAGE and value is not None and value > Decimal("100"):
-            self.add_error("value", "Percentage cannot be more than 100.")
-        max_discount = cleaned.get("max_discount")
-        if max_discount is not None and max_discount <= 0:
-            self.add_error("max_discount", "Maximum discount must be greater than zero.")
-        return cleaned
-
-    def save(self, commit=True):
-        promo = super().save(commit=False)
-        selected = self.cleaned_data.get("products")
-        promo.apply_to = (
-            Promotion.ApplyTo.PRODUCT if selected else Promotion.ApplyTo.ALL
-        )
-        if commit:
-            promo.save()
-            self.save_m2m()
-        return promo
 
 
 class ProductOfferForm(TailwindFormMixin, forms.ModelForm):

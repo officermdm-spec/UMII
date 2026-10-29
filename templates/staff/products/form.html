@@ -11,7 +11,7 @@
     <div>
       <h2 class="font-semibold">Size variants</h2>
       <p class="mt-1 text-sm text-slate-600">
-        Add each sellable size with its own SKU and stock. Color, price, product details, and photos are shared.
+        Add each sellable size with its own SKU and stock. Choose XS, S, M, L, XL, XXL, or XXXL. Color, price, product details, and photos are shared.
         Stock for each size is managed separately in Inventory.
       </p>
     </div>
@@ -22,12 +22,17 @@
         <div class="grid gap-3 rounded-lg border bg-white p-3 sm:grid-cols-2" data-variant-row>
           {% for hidden in variant_form.hidden_fields %}{{ hidden }}{% endfor %}
           {% for field in variant_form.visible_fields %}
+            {% if field.name == "DELETE" %}
+              <span class="hidden">{{ field }}</span>
+            {% else %}
             <div>
               <label class="text-sm font-medium" for="{{ field.id_for_label }}">{{ field.label }}</label>
               {{ field }}
               {{ field.errors }}
             </div>
+            {% endif %}
           {% endfor %}
+          <button type="button" data-remove-variant class="justify-self-start rounded-lg border border-red-300 px-3 py-2 text-sm font-medium text-red-700">Remove option</button>
         </div>
       {% endfor %}
     </div>
@@ -35,11 +40,16 @@
       <div class="grid gap-3 rounded-lg border bg-white p-3 sm:grid-cols-2" data-variant-row>
         {% for hidden in variant_formset.empty_form.hidden_fields %}{{ hidden }}{% endfor %}
         {% for field in variant_formset.empty_form.visible_fields %}
+          {% if field.name == "DELETE" %}
+            <span class="hidden">{{ field }}</span>
+          {% else %}
           <div>
             <label class="text-sm font-medium" for="{{ field.id_for_label }}">{{ field.label }}</label>
             {{ field }}
           </div>
+          {% endif %}
         {% endfor %}
+        <button type="button" data-remove-variant class="justify-self-start rounded-lg border border-red-300 px-3 py-2 text-sm font-medium text-red-700">Remove option</button>
       </div>
     </template>
     <button type="button" id="add-variant" class="rounded-lg border border-olive-600 px-3 py-2 text-sm font-medium text-olive-700">Add another option</button>
@@ -123,6 +133,15 @@
       const html = template.innerHTML.replace(/__prefix__/g, String(index));
       rows.insertAdjacentHTML("beforeend", html);
       totalForms.value = String(index + 1);
+    });
+    rows.addEventListener("click", function (event) {
+      const button = event.target.closest("[data-remove-variant]");
+      if (!button) return;
+      const row = button.closest("[data-variant-row]");
+      const deleteField = row && row.querySelector('input[name$="-DELETE"]');
+      if (!row || !deleteField) return;
+      deleteField.checked = true;
+      row.style.display = "none";
     });
   })();
 </script>

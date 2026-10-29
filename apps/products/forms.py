@@ -42,8 +42,29 @@ class ProductForm(TailwindFormMixin, forms.ModelForm):
         else:
             self.fields.pop("color")
 
+    def clean_size(self):
+        size = (self.cleaned_data.get("size") or "").strip()
+        if self.instance.variant_parent_id and not size:
+            raise forms.ValidationError("Enter a size for this product variant.")
+        return size
+
 
 class ProductVariantForm(TailwindFormMixin, forms.ModelForm):
+    SIZE_CHOICES = (
+        ("XS", "XS"),
+        ("S", "S"),
+        ("M", "M"),
+        ("L", "L"),
+        ("XL", "XL"),
+        ("XXL", "XXL"),
+        ("XXXL", "XXXL"),
+    )
+
+    size = forms.ChoiceField(
+        choices=(("", "Select size"), *SIZE_CHOICES),
+        required=False,
+    )
+
     class Meta:
         model = Product
         fields = [
@@ -56,6 +77,9 @@ class ProductVariantForm(TailwindFormMixin, forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["sku"].required = False
+        current_size = (self.instance.size or "").strip()
+        if current_size and current_size not in dict(self.SIZE_CHOICES):
+            self.fields["size"].choices += ((current_size, current_size),)
         if not self.is_bound and not self.instance.pk:
             self.fields["is_active"].initial = True
 
@@ -63,7 +87,7 @@ class ProductVariantForm(TailwindFormMixin, forms.ModelForm):
         if not self.instance.pk:
             return any(
                 (self.data.get(self.add_prefix(field)) or "").strip()
-                for field in ("sku", "size")
+                for field in ("sku", "size", "DELETE")
             )
         return super().has_changed()
 
@@ -120,7 +144,9 @@ class BaseProductVariantFormSet(forms.BaseInlineFormSet):
                 continue
             size = (form.cleaned_data.get("size") or "").strip().casefold()
             if not size:
-                continue
+                raise forms.ValidationError(
+                    "Enter a size for every variant, or remove the empty option."
+                )
             if size in seen:
                 raise forms.ValidationError(
                     "Each size can only be added once."
@@ -134,8 +160,8 @@ ProductVariantFormSet = inlineformset_factory(
     fk_name="variant_parent",
     form=ProductVariantForm,
     formset=BaseProductVariantFormSet,
-    extra=1,
-    can_delete=False,
+    extra=0,
+    can_delete=True,
 )
 
 

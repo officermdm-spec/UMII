@@ -34,7 +34,7 @@ SALES = "4000"
 SHIPPING = "4010"
 DISC_PRODUCT = "4100"
 DISC_OFFER = "4110"
-DISC_COUPON = "4120"
+DISC_ORDER_DISCOUNT = "4120"
 SALES_RETURNS = "4130"
 COGS = "5000"
 EXP_DELIVERY = "5100"
@@ -63,7 +63,7 @@ DEFAULT_ACCOUNTS = [
     (SHIPPING, "Shipping Revenue", AccountType.REVENUE),
     (DISC_PRODUCT, "Product Discounts", AccountType.CONTRA_REVENUE),
     (DISC_OFFER, "Product Offer Discounts", AccountType.CONTRA_REVENUE),
-    (DISC_COUPON, "Coupon Discounts", AccountType.CONTRA_REVENUE),
+    (DISC_ORDER_DISCOUNT, "Historical Order Discounts", AccountType.CONTRA_REVENUE),
     (SALES_RETURNS, "Sales Returns", AccountType.CONTRA_REVENUE),
     (COGS, "Cost of Goods Sold", AccountType.EXPENSE),
     (EXP_DELIVERY, "Delivery", AccountType.EXPENSE),

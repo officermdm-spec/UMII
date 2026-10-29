@@ -79,7 +79,6 @@ class Order(models.Model):
     )
     tax = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
     grand_total = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
-    coupon_code = models.CharField(max_length=40, blank=True)
     catalog_discount = models.DecimalField(
         max_digits=12, decimal_places=2, default=Decimal("0.00")
     )
@@ -137,14 +136,10 @@ class OrderItem(models.Model):
     discount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
     tax = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
     total = models.DecimalField(max_digits=12, decimal_places=2)
-    promo_percent = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal("0.00"))
     catalog_discount = models.DecimalField(
         max_digits=12, decimal_places=2, default=Decimal("0.00")
     )
     offer_discount = models.DecimalField(
-        max_digits=12, decimal_places=2, default=Decimal("0.00")
-    )
-    coupon_discount = models.DecimalField(
         max_digits=12, decimal_places=2, default=Decimal("0.00")
     )
     cogs_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
@@ -157,12 +152,6 @@ class OrderItem(models.Model):
 
     def __str__(self):
         return f"{self.order.order_number} - {self.product_name}"
-
-    @property
-    def has_promo(self):
-        return self.promo_percent > 0
-
-
 
 class OrderStatusHistory(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="status_history")

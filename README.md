@@ -30,7 +30,7 @@ ecommerce-ms/
 │   ├── orders/             # cart, checkout, order workflow, invoices
 │   ├── payments/           # methods, proofs, paid/failed
 │   ├── returns/
-│   ├── promotions/         # coupons + product offers
+│   ├── promotions/         # automatic product offers
 │   ├── reviews/            # product reviews + customer feedback
 │   ├── dashboard/
 │   └── accounting/         # chart of accounts, ledger, P&L, reports
@@ -107,12 +107,12 @@ flowchart LR
   subgraph staff [Staff]
     A[Product + SKU + barcode] --> B[GRN approve]
     B --> C[Inventory + FIFO cost layers]
-    D[Coupons / product offers] --> E[Live prices and checkout]
+    D[Product offers] --> E[Live prices and checkout]
     C --> F[Customer can buy]
   end
   subgraph customer [Customer]
     F --> G[Shop / PDP / cart]
-    G --> H[Checkout + coupon]
+    G --> H[Checkout]
     H --> I[Order + payment]
     I --> J[Staff confirms sale]
     J --> K[COGS + accounting journals]
@@ -139,9 +139,7 @@ Typical first-time path:
    - Accounting posts Inventory Dr / Accounts Payable Cr. Pending GRN does not add sellable stock.
 6. **Inventory** — warehouse on-hand vs reserved, barcode search, low stock, min stock level, manual adjustments.
 7. **Payments → Methods** — enable COD / bank / wallet methods customers will see at checkout.
-8. **Promotions**
-   - **Coupons** — code customers type at checkout (`SAVE10`).
-   - **Product offers** — timed sale on selected products (badge + sale price on the shop).
+8. **Product offers** — timed sale on selected products (badge + sale price on the shop).
 9. **Accounting** `/staff/accounting/` — dashboard, sales, purchases, expenses, cash/bank, ledger, P&L, reconciliation.
    - Journals are created from real events (GRN approve, order confirm, payment paid, return, expense). Staff do not type each sale by hand.
 
@@ -156,16 +154,14 @@ flowchart TD
   Home[Home / shop / category] --> PDP[Product page]
   PDP --> Cart[Cart]
   Cart --> Checkout[Checkout]
-  Checkout --> Apply{Apply coupon?}
-  Apply -->|POST /checkout/coupon/apply/| Quote[Server quote_promotions]
-  Apply -->|skip| Quote
+  Checkout --> Quote[Server calculates product offers]
   Quote --> Place[Place order]
   Place --> Order[Order pending + stock reserved]
 ```
 
 Step by step:
 
-1. **Home** `/` — categories, live coupon codes (if “Show on website”), featured products.
+1. **Home** `/` — categories, featured products.
 2. **Shop** `/shop/` — search, category, price sort.
 3. **Category** `/category/<slug>/`.
 4. **Product** `/product/<slug>/` — gallery, sale badge, stock, WhatsApp enquiry, add to cart.
@@ -176,12 +172,10 @@ Step by step:
 6. **Checkout** `/checkout/` (customer login required)
    - Needs at least one **address**.
    - Choose billing/shipping, payment method, optional payment screenshot (not for COD).
-   - Enter coupon → **Apply**. The browser never sends a discount amount; the server recalculates.
-   - Summary shows: subtotal, product offer (if any), coupon (if any), shipping, total.
+   - Summary shows: subtotal, product offer (if any), shipping, tax, total.
 7. **Place order**
    - Stock is **reserved**.
-   - Coupon usage is recorded only after the order is created (not when Apply is clicked).
-   - Cart and applied coupon session are cleared.
+   - Cart is cleared.
    - Customer lands on `/orders/<id>/`.
 
 Guest checkout is not supported: the customer must register or log in before `/checkout/`.
@@ -203,7 +197,7 @@ Staff **Orders** `/staff/orders/<id>/`:
 Pending → Confirmed → Processing → Delivered
 ```
 
-- **Pending** — stock is **reserved only**. This is not a completed sale. Customer may cancel; reservation is released; coupon usage is restored. No revenue/COGS journal.
+- **Pending** — stock is **reserved only**. This is not a completed sale. Customer may cancel; reservation is released. No revenue/COGS journal.
 - **Confirmed** — final sale event: reserved stock converts to sold, FIFO cost layers are consumed, revenue + COGS journals post (once). Customer cannot cancel in-app (contact email / WhatsApp).
 - **Processing** — warehouse prep. No second sale posting.
 - **Delivered** — thermal invoice number is issued; customer can print `/orders/<id>/invoice/`. COD can be marked paid automatically (cash journal on **paid**, not on screenshot upload).
@@ -217,15 +211,9 @@ Each status change writes `OrderStatusHistory` and the on-page tracker.
 - **Return** — customer requests from a delivered/received order (`/returns/order/<id>/new/`). Staff process under **Returns**. Approved restock goes through inventory transactions.
 - **Feedback** — general store feedback at `/reviews/feedback/` (separate from product reviews).
 
-### 6. Promotions in detail
+### 6. Product offers
 
-Staff **Promotions** has two tabs.
-
-**Coupons** (checkout codes)
-
-- Offer name, unique code, % or fixed amount, min order, max discount, usage limit, per-customer limit, dates, active, show on website, applicable products.
-- Empty product list = whole cart. Ticked products = those lines only.
-- Home page only lists coupons with **Show on website** that are currently live.
+Staff **Product Offers** at `/staff/promotions/offers/` manages automatic offers.
 
 **Product offers** (automatic sale price)
 
@@ -233,15 +221,14 @@ Staff **Promotions** has two tabs.
 - While live, product cards/PDP show original price, sale price, and a Sale badge.
 - After end date the offer stops (status **Expired**); no cron job required.
 
-**One calculator:** `apps/promotions/services.py` → `quote_promotions()`.
+**Price calculator:** `apps/promotions/services.py` → `quote_product_offers()`.
 
 1. Unit price = lowest of list price, catalog `%` markdown, live product offer.
 2. Buy X Get Y frees extra units on that line.
-3. Coupon is validated (active, dates, min order, limits, eligible products).
-4. Default `ALLOW_COUPON_WITH_PRODUCT_OFFER=false` — a coupon cannot also discount a line that already has a product offer.
-5. Grand total is never below zero.
+3. Offer prices and totals are calculated on the server.
+4. Grand total is never below zero.
 
-Set `ALLOW_COUPON_WITH_PRODUCT_OFFER=true` in `.env` only if stacking is intended.
+Checkout coupons and their definitions/usage records are removed by migrations. Existing order totals and posted accounting history remain, with past order discounts retained as historical financial data.
 
 ### 7. Inventory movement (always via transactions)
 
@@ -250,7 +237,7 @@ Set `ALLOW_COUPON_WITH_PRODUCT_OFFER=true` in `.env` only if stacking is intende
 | Approve GRN | On-hand up | FIFO layer at **actual GRN rate**; Inventory Dr, AP Cr |
 | Place order | Reserve quantity | No sale, no COGS |
 | Confirm | Reserved → sold | Consume FIFO layers; revenue + COGS |
-| Cancel while pending | Release reservation; restore coupon | No sale journals |
+| Cancel while pending | Release reservation | No sale journals |
 | Cancel after confirm | Restock | Restore layers; reverse sale journals |
 | Return (resellable) | On-hand up | Restore layers; reverse net sales + COGS |
 | Return (damaged) | Not restocked for sale | Revenue reverse only; COGS stays |
@@ -330,7 +317,7 @@ Base: `/staff/` after `/staff/accounts/login/`.
 | Payments | `/staff/payments/` | Proofs, mark paid/failed, methods |
 | Returns | `/staff/returns/` | Approve/process returns |
 | Reviews | `/staff/reviews/` | Moderate reviews + reply to feedback |
-| Promotions | `/staff/promotions/` | Coupons and product offers |
+| Product Offers | `/staff/promotions/offers/` | Automatic product discounts |
 | Accounting | `/staff/accounting/` | Dashboard, ledger, P&L, expenses, cash, reconciliation |
 
 `/staff/accounts/` is **Users & Permissions**, not the accounting module. Accounting lives at `/staff/accounting/`.
@@ -380,12 +367,11 @@ What people type on screen vs what the database keeps. Auto-generated values are
 | Shipping address | Used when “same as billing” is off |
 | Payment method | Active methods only (COD, bank, Easypaisa, JazzCash, online) |
 | Payment screenshot | Required unless COD |
-| Coupon code | Separate **Apply** / **Remove**; the browser cannot submit a fake discount amount |
 | Notes | Optional |
 
-**Order (stored)** — order number **auto** (`ORD…`); snapshots of billing/shipping name, phone, address, city, area, postal code; payment method code; payment status; order status; subtotal; catalog discount; product-offer discount; coupon discount; shipping; tax; grand total; COGS total; fulfillment warehouse; coupon code; notes; invoice number **auto** on deliver (`INV…`).
+**Order (stored)** — order number **auto** (`ORD…`); snapshots of billing/shipping name, phone, address, city, area, postal code; payment method code; payment status; order status; subtotal; catalog discount; product-offer discount; historical order discount; shipping; tax; grand total; COGS total; fulfillment warehouse; notes; invoice number **auto** on deliver (`INV…`).
 
-**Order line (stored)** — product (nullable), SKU snapshot, product name snapshot, quantity, list unit price, catalog discount, offer discount, coupon discount, tax, line total, coupon percent, FIFO COGS amount.
+**Order line (stored)** — product (nullable), SKU snapshot, product name snapshot, quantity, list unit price, catalog discount, offer discount, total discount, tax, line total, FIFO COGS amount.
 
 ### Staff — users
 
@@ -452,27 +438,6 @@ On **Approve:** stock up, FIFO cost layer (product, warehouse, GRN line, actual 
 
 **Transaction (stored):** product, warehouse, signed qty, type (GRN, sale, reserve, release, return, damage, correction, …), reference, user, notes.
 
-### Promotions — coupons
-
-`/staff/promotions/add/`
-
-| Field | Notes |
-| --- | --- |
-| Offer name | Shown on home if “Show on website” |
-| Coupon code | Unique, e.g. `SAVE10` |
-| Discount type | Percentage or fixed amount |
-| Discount value | `10` = 10% or Rs. 10 |
-| Minimum order amount | After product offers |
-| Maximum discount | Optional cap, mainly for % |
-| Usage limit | Blank = unlimited total |
-| Usage limit per customer | Default 1; blank = unlimited |
-| Applicable products | Tick from inventory; none ticked = whole cart |
-| Starts / ends | Date and time |
-| Active | Can be redeemed |
-| Show on website | Home coupon strip |
-
-**Auto:** `used_count`. Apply-to (specific products vs all) follows the tick list.
-
 ### Promotions — product offers
 
 `/staff/promotions/offers/add/`
@@ -517,7 +482,7 @@ Staff can set status + transaction id, or **Approve screenshot** / **Reject**.
 
 **Journal (stored)** — number **auto** (`JE…`), datetime, reference type/id, description, balanced debit/credit lines, actor. Posted rows are not deleted; corrections use reversal.
 
-P&L: Gross sales − product discounts − offer discounts − coupon discounts − sales returns = net sales; − COGS = gross profit; + other income − operating expenses = net profit. COGS is FIFO consumption, never `purchase_price × qty`.
+P&L: Gross sales − product discounts − offer discounts − historical order discounts − sales returns = net sales; − COGS = gross profit; + other income − operating expenses = net profit. COGS is FIFO consumption, never `purchase_price × qty`.
 
 ### Reviews and feedback
 
@@ -537,8 +502,6 @@ P&L: Gross sales − product discounts − offer discounts − coupon discounts 
 | `/product/<slug>/` | Product detail |
 | `/cart/` | Cart |
 | `/checkout/` | Checkout |
-| `/checkout/coupon/apply/` | Apply coupon (POST) |
-| `/checkout/coupon/remove/` | Remove coupon (POST) |
 | `/orders/` | Customer order list |
 | `/staff/accounting/` | Accounting (staff, permission required) |
 | `/staff/products/<id>/barcode/` | Print barcode labels |
@@ -550,7 +513,7 @@ P&L: Gross sales − product discounts − offer discounts − coupon discounts 
 ## Important rules in the code
 
 - Money uses `DecimalField`, never floats.
-- Discounts are calculated only on the server (`quote_promotions`). Changing HTML in DevTools cannot change the payable total.
+- Product offer discounts are calculated only on the server (`quote_product_offers`). Changing HTML in DevTools cannot change the payable total.
 - Stock changes go through `apps.inventory.services.record_stock_transaction`.
 - Historical COGS uses FIFO cost layers from approved GRN rates, never current `Product.purchase_price × qty`.
 - Product barcode is unique, product-level, and stable on edit. Lookup is `get_product_by_barcode()`.
@@ -575,7 +538,6 @@ See `.env.example`. Common keys:
 | `EMAIL_HOST_*`, `EMAIL_HTTP_URL`, `EMAIL_HTTP_SECRET` | Password-reset mail |
 | `WHATSAPP_NUMBER` | Product-page chat link (digits only, e.g. `923001234567`) |
 | `SHIPPING_FLAT_RATE`, `TAX_PERCENT`, `CURRENCY` | Checkout totals |
-| `ALLOW_COUPON_WITH_PRODUCT_OFFER` | Coupon + product-offer stacking (`false` by default) |
 
 ---
 
@@ -585,7 +547,7 @@ See `.env.example`. Common keys:
 python manage.py test
 ```
 
-Covered behaviour includes permission denial, GRN stock posting, FIFO cost layers, barcode uniqueness/lookup, negative-stock protection, customer order isolation, verified reviews, coupon limits, product-offer pricing, coupon/offer stacking, sale/COGS/payment posting, expenses, and accounting 403s.
+Covered behaviour includes permission denial, GRN stock posting, FIFO cost layers, barcode uniqueness/lookup, negative-stock protection, customer order isolation, verified reviews, product-offer pricing, sale/COGS/payment posting, expenses, and accounting 403s.
 
 ---
 
