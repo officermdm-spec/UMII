@@ -41,7 +41,6 @@ def ensure_accounts():
             code=code, defaults={"name": name, "account_type": account_type}
         )
 
-
 def get_account(code):
     ensure_accounts()
     try:
