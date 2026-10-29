@@ -40,8 +40,28 @@ class CustomerRegistrationForm(TailwindFormMixin, UserCreationForm):
 
 
 class CustomerLoginForm(TailwindFormMixin, AuthenticationForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["username"].label = "Email or username"
+
+    def clean(self):
+        username = self.cleaned_data.get("username")
+        if username and "@" in username:
+            customer = User.objects.filter(
+                email__iexact=username,
+                user_type=User.UserType.CUSTOMER,
+            ).first()
+            if customer:
+                self.cleaned_data["username"] = customer.get_username()
+        return super().clean()
+
     def confirm_login_allowed(self, user):
         super().confirm_login_allowed(user)
+        if user.user_type != User.UserType.CUSTOMER:
+            raise forms.ValidationError(
+                "This login is for customer accounts only.",
+                code="invalid_login",
+            )
 
 
 class CustomerPasswordResetForm(TailwindFormMixin, PasswordResetForm):
@@ -54,6 +74,13 @@ class CustomerPasswordResetForm(TailwindFormMixin, PasswordResetForm):
                 "autocomplete": "email",
             }
         )
+
+    def get_users(self, email):
+        return User._default_manager.filter(
+            email__iexact=email,
+            is_active=True,
+            user_type=User.UserType.CUSTOMER,
+        ).iterator()
 
     def send_mail(
         self,
@@ -74,6 +101,7 @@ class CustomerPasswordResetForm(TailwindFormMixin, PasswordResetForm):
                     to_email,
                     html_email_template_name=html_email_template_name,
                 )
+                logger.info("Password reset email accepted by the configured email backend")
             except (SMTPException, OSError, TimeoutError):
                 logger.exception("Password reset email was not delivered to %s", to_email)
 

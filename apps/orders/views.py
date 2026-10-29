@@ -254,6 +254,7 @@ class CustomerOrderTrackView(TemplateView):
             )
             if order:
                 context["tracked_order"] = order
+                context["needs_password_setup"] = not order.customer.has_usable_password()
                 tracker = build_order_tracker(order)
                 tracker["history"] = []
                 context["tracker"] = tracker

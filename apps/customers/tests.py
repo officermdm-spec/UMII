@@ -54,18 +54,75 @@ class PasswordResetTests(TestCase):
         self.assertContains(customer, "Forgot password?")
         self.assertContains(staff, "Forgot password?")
         self.assertContains(customer, reverse("customers:password_reset"))
+        self.assertContains(customer, "Email or username")
+
+    def test_customer_can_login_with_email(self):
+        self.user.set_password("valid-pass123")
+        self.user.save(update_fields=["password"])
+
+        response = self.client.post(
+            reverse("customers:login"),
+            {"username": self.user.email, "password": "valid-pass123"},
+        )
+
+        self.assertRedirects(response, reverse("customers:dashboard"))
+
+    def test_customer_login_rejects_staff_account(self):
+        staff = User.objects.create_user(
+            username="staff-login",
+            password="staff-pass123",
+            email="staff@example.com",
+            user_type=User.UserType.STAFF,
+        )
+
+        response = self.client.post(
+            reverse("customers:login"),
+            {"username": staff.username, "password": "staff-pass123"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.wsgi_request.user.is_authenticated)
 
     def test_reset_email_sent_from_store_mailbox(self):
-        response = self.client.post(
-            reverse("customers:password_reset"), {"email": "forgot@example.com"}
-        )
+        with self.assertLogs("apps.customers.forms", level="INFO") as logged:
+            response = self.client.post(
+                reverse("customers:password_reset"), {"email": "forgot@example.com"}
+            )
         self.assertEqual(response.status_code, 302)
         self.assertEqual(len(mail.outbox), 1)
+        self.assertIn("accepted by the configured email backend", logged.output[0])
         message = mail.outbox[0]
         self.assertEqual(message.from_email, "officermdm@gmail.com")
         self.assertEqual(message.to, ["forgot@example.com"])
         self.assertIn("password", message.subject.lower())
         self.assertTrue(message.alternatives)
+
+    def test_reset_email_is_sent_for_guest_customer_without_password(self):
+        self.user.set_unusable_password()
+        self.user.save(update_fields=["password"])
+
+        response = self.client.post(
+            reverse("customers:password_reset"), {"email": self.user.email}
+        )
+
+        self.assertRedirects(response, reverse("customers:password_reset_done"))
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, [self.user.email])
+
+    def test_customer_password_reset_does_not_send_to_staff_account(self):
+        User.objects.create_user(
+            username="staff-reset",
+            password="staff-pass123",
+            email="staff-reset@example.com",
+            user_type=User.UserType.STAFF,
+        )
+
+        response = self.client.post(
+            reverse("customers:password_reset"), {"email": "staff-reset@example.com"}
+        )
+
+        self.assertRedirects(response, reverse("customers:password_reset_done"))
+        self.assertEqual(len(mail.outbox), 0)
 
     def test_unknown_email_does_not_leak_account(self):
         response = self.client.post(
@@ -73,6 +130,28 @@ class PasswordResetTests(TestCase):
         )
         self.assertRedirects(response, reverse("customers:password_reset_done"))
         self.assertEqual(len(mail.outbox), 0)
+
+    @override_settings(
+        EMAIL_BACKEND="config.email.HttpsEmailBackend",
+        EMAIL_HTTP_URL="https://example.com/exec",
+        EMAIL_HTTP_SECRET="",
+    )
+    def test_reset_done_warns_when_bridge_secret_is_missing(self):
+        response = self.client.get(reverse("customers:password_reset_done"))
+
+        self.assertContains(response, "Email delivery is not configured")
+        self.assertFalse(response.context["email_delivery_configured"])
+
+    @override_settings(
+        EMAIL_BACKEND="config.email.HttpsEmailBackend",
+        EMAIL_HTTP_URL="https://example.com/exec",
+        EMAIL_HTTP_SECRET="abc",
+    )
+    def test_reset_done_recognizes_configured_bridge(self):
+        response = self.client.get(reverse("customers:password_reset_done"))
+
+        self.assertNotContains(response, "Email delivery is not configured")
+        self.assertTrue(response.context["email_delivery_configured"])
 
     def test_reset_link_sets_new_password(self):
         uid = urlsafe_base64_encode(force_bytes(self.user.pk))

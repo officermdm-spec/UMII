@@ -281,7 +281,7 @@ Figures come from posted journals + remaining cost layers:
 | Page | URL |
 | --- | --- |
 | Register / login / logout | `/account/register/` `/account/login/` `/account/logout/` |
-| Forgot password | `/account/password-reset/` — email from `officermdm@gmail.com` |
+| Forgot password | `/account/password-reset/` — email from `officermdm@gmail.com`; customer login accepts email or username |
 | Dashboard | `/account/dashboard/` |
 | Profile / addresses | `/account/profile/` `/account/addresses/` |
 | Orders | `/orders/` |
@@ -297,6 +297,7 @@ On Render, Gmail SMTP is blocked. Deploy `scripts/gmail_bridge.gs` as a Google A
 5. After changing the script, deploy a new version. Opening the `/exec` URL should return JSON with `"status":"active"`.
 
 The bridge returns a JSON `"status":"sent"` only after Gmail accepts the email. Delivery errors and secret mismatches are logged by the application.
+Guest checkout creates a customer account without a password. From the order-tracking page, the customer can request a password setup link at the checkout email, then sign in with that email.
 
 ---
 

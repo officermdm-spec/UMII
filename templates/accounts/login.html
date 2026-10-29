@@ -1,6 +1,7 @@
 {% extends "accounts/auth_base.html" %}
 {% block store_title %}Login{% endblock %}
 {% block auth_heading %}Welcome back{% endblock %}
+{% block auth_lead %}Sign in with your email address or username.{% endblock %}
 {% block auth_content %}
 <form method="post" class="space-y-4">
   {% csrf_token %}

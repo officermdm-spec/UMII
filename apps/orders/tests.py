@@ -178,6 +178,7 @@ class GuestCheckoutTests(TestCase):
         self.assertEqual(tracking.status_code, 200)
         self.assertContains(tracking, order.order_number)
         self.assertContains(tracking, "Pending")
+        self.assertContains(tracking, "Set your password by email")
         self.assertNotContains(tracking, "Street 1")
         self.assertNotContains(tracking, "Guest Customer")
 

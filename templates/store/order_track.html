@@ -23,11 +23,20 @@
     <div class="mt-4">
       {% include "components/order_status_tracker.html" with tracker=tracker %}
     </div>
-    <p class="mt-4 text-sm text-slate-500">
-      An account is associated with this order. If you haven’t set a password, you can
-      <a class="font-semibold text-brand-700 underline" href="{% url 'customers:password_reset' %}">set one using password reset</a>
-      to view your order history.
-    </p>
+    {% if needs_password_setup %}
+      <p class="mt-4 text-sm text-slate-600">
+        Your checkout email has a customer account, but it does not have a password yet.
+        <a class="font-semibold text-brand-700 underline" href="{% url 'customers:password_reset' %}">Set your password by email</a>
+        to sign in and view your order history.
+      </p>
+    {% else %}
+      <p class="mt-4 text-sm text-slate-600">
+        Sign in with your email or username to view your order history, or
+        <a class="font-semibold text-brand-700 underline" href="{% url 'customers:password_reset' %}">reset your password</a>
+        if you’ve forgotten it.
+        <a class="font-semibold text-brand-700 underline" href="{% url 'customers:login' %}">Customer login</a>
+      </p>
+    {% endif %}
   {% endif %}
 </section>
 {% endblock %}

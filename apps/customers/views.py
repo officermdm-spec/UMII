@@ -103,9 +103,15 @@ class CustomerPasswordResetDoneView(PasswordResetDoneView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["email_uses_smtp"] = bool(getattr(settings, "EMAIL_HTTP_URL", "")) or (
-            "resilientsmtp" in settings.EMAIL_BACKEND.lower()
-        )
+        backend = settings.EMAIL_BACKEND.lower()
+        if backend.endswith("httpsemailbackend".lower()):
+            context["email_delivery_configured"] = bool(
+                settings.EMAIL_HTTP_URL and settings.EMAIL_HTTP_SECRET
+            )
+        else:
+            context["email_delivery_configured"] = (
+                "resilientsmtp" in backend and bool(settings.EMAIL_HOST_PASSWORD)
+            )
         return context
 
 
