@@ -3,13 +3,14 @@ from decimal import Decimal
 from django.contrib.auth import get_user_model
 from django.db import connection
 from django.test import SimpleTestCase, TestCase
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 
 from apps.accounts.permissions import MODULES
 from apps.accounts.tests import build_catalog
 from apps.accounting.forms import ExpenseForm
 from apps.accounting.models import Account, AccountingPosting, Expense, JournalEntry
-from apps.accounting.services import account_balance, period_totals, post_sale_event
+from apps.accounting.services import account_balance, ensure_accounts, period_totals, post_sale_event
 from apps.customers.models import Address
 from apps.inventory.costing import layer_value
 from apps.inventory.models import InventoryCostLayer
@@ -92,6 +93,23 @@ class RemovedAccountingPagesTests(TestCase):
     def test_other_income_table_and_unused_account_are_removed(self):
         self.assertNotIn("accounting_otherincome", connection.introspection.table_names())
         self.assertFalse(Account.objects.filter(code="4020").exists())
+
+
+class AccountingLineCleaningTests(TestCase):
+    def test_clean_lines_fetches_accounts_in_one_query(self):
+        from apps.accounting.services import _clean_lines
+
+        ensure_accounts()
+        lines = [
+            {"account": "1100", "debit": Decimal("10.00")},
+            {"account": "4000", "credit": Decimal("10.00")},
+        ]
+
+        with CaptureQueriesContext(connection) as queries:
+            cleaned = _clean_lines(lines)
+
+        self.assertEqual(len(queries), 1)
+        self.assertEqual([line["account"].code for line in cleaned], ["1100", "4000"])
 
 
 def make_request(user):

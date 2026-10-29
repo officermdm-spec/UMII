@@ -68,7 +68,8 @@ def record_audit(user, action, *, reference_type="", reference_id="", amount=ZER
 
 
 def _clean_lines(raw_lines):
-    lines = []
+    prepared = []
+    account_codes = set()
     for row in raw_lines:
         debit = money(row.get("debit") or ZERO)
         credit = money(row.get("credit") or ZERO)
@@ -78,12 +79,25 @@ def _clean_lines(raw_lines):
             raise AccountingError("A journal line cannot be both debit and credit.")
         if debit == ZERO and credit == ZERO:
             continue
+        account_code = row["account"]
+        account_codes.add(account_code)
+        prepared.append((account_code, debit, credit, row.get("memo") or ""))
+
+    accounts = {
+        account.code: account
+        for account in Account.objects.filter(code__in=account_codes, is_active=True)
+    }
+    lines = []
+    for account_code, debit, credit, memo in prepared:
+        account = accounts.get(account_code)
+        if account is None:
+            raise AccountingError(f"Account {account_code} is missing.")
         lines.append(
             {
-                "account": get_account(row["account"]),
+                "account": account,
                 "debit": debit,
                 "credit": credit,
-                "memo": row.get("memo") or "",
+                "memo": memo,
             }
         )
     return lines
