@@ -131,7 +131,8 @@ def build_order_tracker(order):
         return {
             "mode": "cancelled",
             "current": current,
-            "current_label": labels[current],
+            # "current_label": labels[current],
+            "current_label": labels.get(current, current),
             "current_hint": STATUS_HINTS[current],
             "progress_percent": 100,
             "steps": steps,
