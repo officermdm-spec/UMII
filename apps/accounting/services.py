@@ -33,14 +33,17 @@ class AccountingError(Exception):
     pass
 
 
+# def ensure_accounts():
+#     from apps.accounting.coa import DEFAULT_ACCOUNTS
+
+#     for code, name, account_type in DEFAULT_ACCOUNTS:
+#         Account.objects.get_or_create(
+#             code=code, defaults={"name": name, "account_type": account_type}
+#         )
 def ensure_accounts():
     from apps.accounting.coa import DEFAULT_ACCOUNTS
-
     for code, name, account_type in DEFAULT_ACCOUNTS:
-        Account.objects.get_or_create(
-            code=code, defaults={"name": name, "account_type": account_type}
-        )
-
+        Account.objects.get_or_create(code=code, defaults={"name": name, "account_type": account_type})
 
 def get_account(code):
     ensure_accounts()
