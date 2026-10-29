@@ -1,0 +1,33 @@
+{% extends "store/base.html" %}
+{% load humanize %}
+{% block store_title %}Track an order{% endblock %}
+{% block content %}
+<section class="mx-auto max-w-3xl">
+  <p class="text-xs font-semibold uppercase tracking-[0.18em] text-brand-600">Order tracking</p>
+  <h1 class="mt-1 text-3xl font-bold tracking-tight">Track your order</h1>
+  <p class="mt-2 text-sm text-slate-500">Enter the order number from your order confirmation.</p>
+  <form method="get" action="{% url 'orders_customer:track' %}" class="surface-card mt-6 flex flex-col gap-3 rounded-2xl p-5 sm:flex-row">
+    <div class="flex-1">
+      <label for="{{ form.order_number.id_for_label }}" class="text-sm font-semibold">Order number</label>
+      {{ form.order_number }}
+      {{ form.order_number.errors }}
+    </div>
+    <button class="btn-primary self-end px-5 py-2.5 font-semibold">Track order</button>
+  </form>
+
+  {% if tracked_order %}
+    <div class="mt-6 rounded-xl border border-sky-100 bg-white p-4 text-sm">
+      <p class="font-semibold">{{ tracked_order.order_number }}</p>
+      <p class="mt-1 text-slate-500">Placed {{ tracked_order.created_at|date:"d M Y H:i" }}</p>
+    </div>
+    <div class="mt-4">
+      {% include "components/order_status_tracker.html" with tracker=tracker %}
+    </div>
+    <p class="mt-4 text-sm text-slate-500">
+      An account is associated with this order. If you haven’t set a password, you can
+      <a class="font-semibold text-brand-700 underline" href="{% url 'customers:password_reset' %}">set one using password reset</a>
+      to view your order history.
+    </p>
+  {% endif %}
+</section>
+{% endblock %}

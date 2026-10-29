@@ -169,14 +169,15 @@ Step by step:
    - Guests: session cart.
    - Logged-in customers: `CartItem` rows in the database (session cart merges on login).
    - Quantity cannot exceed available stock (on-hand minus reserved).
-6. **Checkout** `/checkout/` (customer login required)
-   - Needs at least one **address**.
-   - Choose billing/shipping, payment method, optional payment screenshot (not for COD).
+6. **Checkout** `/checkout/` (guest checkout or signed-in customer)
+   - Guests enter their contact and delivery details directly; no registration or saved address is required.
+   - A customer account is created automatically with the submitted email and phone when the order is placed. Set its password later through **Forgot password**.
+   - Signed-in customers can choose saved billing/shipping addresses. Choose a payment method and, for online payments, upload a payment screenshot (not for COD).
    - Summary shows: subtotal, product offer (if any), shipping, tax, total.
 7. **Place order**
    - Stock is **reserved**.
    - Cart is cleared.
-   - Customer lands on `/orders/<id>/`.
+   - Customer lands on `/orders/track/` with the new order number. Customers can also enter an order number on `/orders/track/` at any time to see its fulfillment progress.
 
 Guest checkout is not supported: the customer must register or log in before `/checkout/`.
 

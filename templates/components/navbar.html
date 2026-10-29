@@ -13,6 +13,7 @@
     </form>
     <nav class="flex items-center gap-2 text-sm font-medium sm:gap-4">
       <a class="hidden text-slate-600 transition hover:text-brand-700 sm:inline" href="{% url 'store:product_list' %}">Shop</a>
+      <a class="hidden text-slate-600 transition hover:text-brand-700 sm:inline" href="{% url 'orders_customer:track' %}">Track order</a>
       <a class="relative flex items-center gap-1.5 text-slate-600 transition hover:text-brand-700" href="{% url 'orders_cart:cart' %}">
         <svg viewBox="0 0 24 24" class="h-5 w-5 fill-none stroke-current" stroke-width="1.8"><path d="M3 5h2l2 11h10l2-8H6"/><path d="M9 20h.01M17 20h.01"/></svg>
         <span class="hidden sm:inline">Cart</span>
@@ -38,6 +39,7 @@
     </form>
     <div class="grid grid-cols-2 gap-2 text-sm text-slate-600">
       <a class="rounded-lg px-2 py-2 hover:bg-brand-50" href="{% url 'store:product_list' %}">All products</a>
+      <a class="rounded-lg px-2 py-2 hover:bg-brand-50" href="{% url 'orders_customer:track' %}">Track an order</a>
       {% for cat in nav_categories %}
         <a class="rounded-lg px-2 py-2 hover:bg-brand-50" href="{% url 'store:category' cat.slug %}">{{ cat.name }}</a>
       {% endfor %}

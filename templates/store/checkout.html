@@ -5,31 +5,77 @@
 <div>
   <p class="text-xs font-semibold uppercase tracking-[0.18em] text-brand-600">Secure checkout</p>
   <h1 class="mt-1 text-3xl font-bold tracking-tight">Complete your order</h1>
-  <p class="mt-2 text-sm text-slate-500">Confirm delivery and payment details below.</p>
+  <p class="mt-2 text-sm text-slate-500">No account is needed to place an order. Add your delivery and payment details below.</p>
 </div>
-{% if not user.addresses.exists %}
+{% if not guest_checkout and not user.addresses.exists %}
   <p class="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">Add a delivery address before placing an order. <a class="font-semibold underline" href="{% url 'customers:address_create' %}">Add address</a></p>
 {% endif %}
 <div class="mt-7 grid gap-6 lg:grid-cols-3">
   <form method="post" enctype="multipart/form-data" class="surface-card space-y-5 rounded-3xl p-5 sm:p-7 lg:col-span-2">
     {% csrf_token %}
-    {{ form.non_field_errors }}
+    {% if form.non_field_errors %}
+      <div class="rounded-xl bg-red-50 p-3 text-sm text-red-700">{{ form.non_field_errors }}</div>
+    {% endif %}
     <div class="border-b border-slate-100 pb-4">
       <h2 class="text-lg font-bold">Delivery details</h2>
       <p class="mt-1 text-sm text-slate-500">Where should we send your order?</p>
     </div>
-    <div>
-      <label class="text-sm font-semibold">Billing address</label>
-      {{ form.billing_address }}
-    </div>
-    <label class="flex items-center gap-2 text-sm">{{ form.same_as_billing }} Same as shipping</label>
-    <div>
-      <label class="text-sm font-semibold">Shipping address</label>
-      {{ form.shipping_address }}
-    </div>
+    {% if guest_checkout %}
+      <p class="rounded-xl bg-sky-50 px-4 py-3 text-sm text-sky-800">We’ll create your customer account automatically when your order is placed.</p>
+      <div class="grid gap-4 sm:grid-cols-2">
+        <div>
+          <label for="{{ form.full_name.id_for_label }}" class="text-sm font-semibold">Full name</label>
+          {{ form.full_name }}
+          {{ form.full_name.errors }}
+        </div>
+        <div>
+          <label for="{{ form.email.id_for_label }}" class="text-sm font-semibold">Email address</label>
+          {{ form.email }}
+          {{ form.email.errors }}
+        </div>
+        <div>
+          <label for="{{ form.phone.id_for_label }}" class="text-sm font-semibold">Phone</label>
+          {{ form.phone }}
+          {{ form.phone.errors }}
+        </div>
+        <div>
+          <label for="{{ form.city.id_for_label }}" class="text-sm font-semibold">City</label>
+          {{ form.city }}
+          {{ form.city.errors }}
+        </div>
+        <div class="sm:col-span-2">
+          <label for="{{ form.address.id_for_label }}" class="text-sm font-semibold">Street address</label>
+          {{ form.address }}
+          {{ form.address.errors }}
+        </div>
+        <div>
+          <label for="{{ form.area.id_for_label }}" class="text-sm font-semibold">Area (optional)</label>
+          {{ form.area }}
+          {{ form.area.errors }}
+        </div>
+        <div>
+          <label for="{{ form.postal_code.id_for_label }}" class="text-sm font-semibold">Postal code (optional)</label>
+          {{ form.postal_code }}
+          {{ form.postal_code.errors }}
+        </div>
+      </div>
+    {% else %}
+      <div>
+        <label class="text-sm font-semibold">Billing address</label>
+        {{ form.billing_address }}
+        {{ form.billing_address.errors }}
+      </div>
+      <label class="flex items-center gap-2 text-sm">{{ form.same_as_billing }} Same as shipping</label>
+      <div>
+        <label class="text-sm font-semibold">Shipping address</label>
+        {{ form.shipping_address }}
+        {{ form.shipping_address.errors }}
+      </div>
+    {% endif %}
     <div>
       <label class="text-sm font-semibold">Payment method</label>
       {{ form.payment_method }}
+      {{ form.payment_method.errors }}
       <p class="mt-1 text-xs text-slate-500">Cash on Delivery needs no screenshot. For online payment, upload a screenshot — staff will check and approve it.</p>
     </div>
     <div id="payment-proof-panel" class="proof-upload-panel hidden rounded-xl p-4">
@@ -43,8 +89,9 @@
     <div>
       <label class="text-sm font-medium">Notes</label>
       {{ form.notes }}
+      {{ form.notes.errors }}
     </div>
-    <button class="btn-primary w-full px-4 py-3 font-semibold sm:w-auto">Place order securely</button>
+    <button class="btn-primary w-full px-4 py-3 font-semibold sm:w-auto">Place order</button>
   </form>
   <aside class="surface-card h-fit rounded-3xl p-6 text-sm lg:sticky lg:top-24">
     <h2 class="text-lg font-bold">Order summary</h2>

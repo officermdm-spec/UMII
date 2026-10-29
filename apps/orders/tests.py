@@ -15,6 +15,7 @@ from apps.orders.services import OrderError, build_order_tracker, change_order_s
 from apps.payments.models import Payment, PaymentMethod
 from apps.payments.services import create_payment_for_order, set_order_payment_status
 from apps.products.models import Product
+from apps.vendors.models import Vendor
 
 User = get_user_model()
 
@@ -113,6 +114,116 @@ class OrderIsolationTests(TestCase):
         self.assertEqual(response.status_code, 302)
         follow = self.client.get(reverse("orders_cart:cart"))
         self.assertEqual(follow.context["summary"]["item_count"], 0)
+
+
+class GuestCheckoutTests(TestCase):
+    def setUp(self):
+        self.warehouse = Warehouse.objects.create(name="Main", code="MAIN")
+        category = Category.objects.create(name="Guest Category", slug="guest-category")
+        vendor = Vendor.objects.create(company_name="Guest Supplier", phone="03001111111")
+        self.product = Product.objects.create(
+            name="Guest Product",
+            sku="GUEST-001",
+            selling_price=Decimal("1000.00"),
+            purchase_price=Decimal("500.00"),
+            category=category,
+            vendor=vendor,
+        )
+        record_stock_transaction(
+            product=self.product,
+            warehouse=self.warehouse,
+            quantity=5,
+            transaction_type=StockTransaction.Type.CORRECTION,
+            reference="GUEST-OPEN",
+        )
+        self.method, _ = PaymentMethod.objects.get_or_create(
+            code=PaymentMethod.Code.COD,
+            defaults={"name": "Cash on Delivery"},
+        )
+
+    def test_guest_checkout_creates_customer_account_and_trackable_order(self):
+        self.client.post(
+            reverse("orders_cart:add", args=[self.product.pk]),
+            {"quantity": 1},
+        )
+
+        response = self.client.post(
+            reverse("orders_checkout:checkout"),
+            {
+                "full_name": "Guest Customer",
+                "email": "guest@example.com",
+                "phone": "03001230000",
+                "address": "Street 1",
+                "city": "Karachi",
+                "area": "Central",
+                "postal_code": "74000",
+                "payment_method": self.method.pk,
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        order = Order.objects.get()
+        customer = order.customer
+        self.assertEqual(customer.email, "guest@example.com")
+        self.assertEqual(customer.user_type, User.UserType.CUSTOMER)
+        self.assertFalse(customer.has_usable_password())
+        self.assertEqual(order.shipping_full_name, "Guest Customer")
+        self.assertEqual(order.shipping_phone, "03001230000")
+        self.assertEqual(order.shipping_address, "Street 1")
+        self.assertEqual(order.shipping_city, "Karachi")
+        self.assertTrue(customer.addresses.filter(is_default=True).exists())
+        self.assertIn(order.order_number, response["Location"])
+
+        tracking = self.client.get(response["Location"])
+        self.assertEqual(tracking.status_code, 200)
+        self.assertContains(tracking, order.order_number)
+        self.assertContains(tracking, "Pending")
+        self.assertNotContains(tracking, "Street 1")
+        self.assertNotContains(tracking, "Guest Customer")
+
+    def test_tracking_rejects_unknown_order_number(self):
+        response = self.client.get(
+            reverse("orders_customer:track"),
+            {"order_number": "ORD-NOT-FOUND"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "We couldn&#x27;t find an order with that number.")
+
+    def test_signed_in_customer_can_still_checkout_with_saved_address(self):
+        customer = User.objects.create_user(
+            username="saved-customer",
+            password="safe-test-password",
+            email="saved@example.com",
+            user_type=User.UserType.CUSTOMER,
+        )
+        address = Address.objects.create(
+            user=customer,
+            full_name="Saved Customer",
+            phone="03001230001",
+            address="Street 2",
+            city="Lahore",
+            is_default=True,
+        )
+        CartItem.objects.create(user=customer, product=self.product, quantity=1)
+        self.client.login(username="saved-customer", password="safe-test-password")
+
+        checkout = self.client.get(reverse("orders_checkout:checkout"))
+        self.assertFalse(checkout.context["guest_checkout"])
+        response = self.client.post(
+            reverse("orders_checkout:checkout"),
+            {
+                "billing_address": address.pk,
+                "shipping_address": address.pk,
+                "same_as_billing": "on",
+                "payment_method": self.method.pk,
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        order = Order.objects.get()
+        self.assertEqual(order.customer, customer)
+        self.assertEqual(order.shipping_address, "Street 2")
+
 
 class OrderStatusUpdateTests(TestCase):
     def setUp(self):

@@ -408,9 +408,11 @@ def place_order(
     billing_address,
     shipping_address,
     payment_method,
+    customer=None,
     notes="",
     payment_proof=None,
 ):
+    order_customer = customer or request.user
     items = cart_items(request)
     if not items:
         raise OrderError("Your cart is empty.")
@@ -448,7 +450,7 @@ def place_order(
     grand_total = money(taxable + shipping + tax)
 
     order = Order.objects.create(
-        customer=request.user,
+        customer=order_customer,
         payment_method_code=payment_method.code,
         payment_status=Order.PaymentStatus.PENDING,
         status=Order.Status.PENDING,
@@ -506,7 +508,7 @@ def place_order(
                     quantity=part_qty,
                     transaction_type=StockTransaction.Type.RESERVE,
                     reference=order.order_number,
-                    user=request.user,
+                    user=order_customer,
                     notes="Reserved on order placement",
                 )
         except StockError as exc:
@@ -519,10 +521,10 @@ def place_order(
     create_payment_for_order(
         order,
         payment_method,
-        user=request.user,
+        user=order_customer,
         proof_image=payment_proof if payment_method.code != PaymentMethod.Code.COD else None,
     )
-    add_status_history(order, Order.Status.PENDING, request.user, "Order placed")
+    add_status_history(order, Order.Status.PENDING, order_customer, "Order placed")
     clear_cart(request)
     return order
 

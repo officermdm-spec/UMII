@@ -1,14 +1,24 @@
 from django.contrib import messages
+from django.db import transaction
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect
-from django.urls import reverse_lazy
+from django.urls import reverse, reverse_lazy
+from django.utils.crypto import get_random_string
+from django.utils.text import slugify
 from django.views.generic import DeleteView, DetailView, FormView, ListView, TemplateView, View
 
 from apps.accounts.mixins import CustomerRequiredMixin, ModulePermissionMixin, SafeDeleteMixin
+from apps.accounts.models import User
 from apps.accounts.permissions import MODULES
+from apps.customers.models import Address
 from apps.inventory.services import available_stock
 from apps.orders.cart import add_to_cart, cart_summary, remove_from_cart, set_quantity
-from apps.orders.forms import CheckoutForm, OrderPaymentStatusForm, OrderStatusForm
+from apps.orders.forms import (
+    CheckoutForm,
+    OrderPaymentStatusForm,
+    OrderStatusForm,
+    OrderTrackingForm,
+)
 from apps.orders.models import Order
 from apps.orders.services import (
     STATUS_FLOW,
@@ -94,27 +104,32 @@ class RemoveCartView(View):
         return redirect("orders_cart:cart")
 
 
-class CheckoutView(CustomerRequiredMixin, FormView):
+class CheckoutView(FormView):
     template_name = "store/checkout.html"
     form_class = CheckoutForm
-    success_url = reverse_lazy("orders_customer:list")
 
     def dispatch(self, request, *args, **kwargs):
         summary = cart_summary(request)
-        if request.user.is_authenticated and not summary["items"]:
+        if not summary["items"]:
             messages.info(request, "Your cart is empty.")
             return redirect("orders_cart:cart")
         return super().dispatch(request, *args, **kwargs)
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
-        kwargs["user"] = self.request.user
+        user = self.request.user
+        kwargs["user"] = (
+            user
+            if user.is_authenticated and user.user_type == User.UserType.CUSTOMER
+            else None
+        )
         return kwargs
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         summary = cart_summary(self.request)
         context["summary"] = summary
+        context["guest_checkout"] = context["form"].is_guest
         context["payment_method_codes"] = {
             str(m.pk): m.code
             for m in PaymentMethod.objects.filter(is_active=True)
@@ -122,22 +137,68 @@ class CheckoutView(CustomerRequiredMixin, FormView):
         return context
 
     def form_valid(self, form):
-        billing = form.cleaned_data["billing_address"]
-        shipping = billing if form.cleaned_data.get("same_as_billing") else form.cleaned_data["shipping_address"]
         try:
-            order = place_order(
-                request=self.request,
-                billing_address=billing,
-                shipping_address=shipping,
-                payment_method=form.cleaned_data["payment_method"],
-                notes=form.cleaned_data.get("notes", ""),
-                payment_proof=form.cleaned_data.get("payment_proof"),
-            )
+            with transaction.atomic():
+                if form.is_guest:
+                    customer = _get_or_create_guest_customer(form.cleaned_data)
+                    address = Address.objects.create(
+                        user=customer,
+                        full_name=form.cleaned_data["full_name"],
+                        phone=form.cleaned_data["phone"],
+                        address=form.cleaned_data["address"],
+                        city=form.cleaned_data["city"],
+                        area=form.cleaned_data.get("area", ""),
+                        postal_code=form.cleaned_data.get("postal_code", ""),
+                        is_default=not customer.addresses.exists(),
+                    )
+                    billing = shipping = address
+                else:
+                    customer = self.request.user
+                    billing = form.cleaned_data["billing_address"]
+                    shipping = (
+                        billing
+                        if form.cleaned_data.get("same_as_billing")
+                        else form.cleaned_data["shipping_address"]
+                    )
+                order = place_order(
+                    request=self.request,
+                    customer=customer,
+                    billing_address=billing,
+                    shipping_address=shipping,
+                    payment_method=form.cleaned_data["payment_method"],
+                    notes=form.cleaned_data.get("notes", ""),
+                    payment_proof=form.cleaned_data.get("payment_proof"),
+                )
         except OrderError as exc:
             form.add_error(None, str(exc))
             return self.form_invalid(form)
         messages.success(self.request, f"Order {order.order_number} placed successfully.")
-        return redirect("orders_customer:detail", pk=order.pk)
+        return redirect(f"{reverse('orders_customer:track')}?order_number={order.order_number}")
+
+
+def _get_or_create_guest_customer(data):
+    email = data["email"]
+    customer = User.objects.filter(
+        email__iexact=email,
+        user_type=User.UserType.CUSTOMER,
+    ).first()
+    if customer:
+        return customer
+
+    username_base = slugify(email.partition("@")[0])[:140] or "customer"
+    username = username_base
+    while User.objects.filter(username=username).exists():
+        username = f"{username_base[:140]}-{get_random_string(8).lower()}"
+
+    return User.objects.create_user(
+        username=username,
+        email=email,
+        password=None,
+        first_name=data["full_name"].partition(" ")[0],
+        last_name=data["full_name"].partition(" ")[2],
+        phone=data["phone"],
+        user_type=User.UserType.CUSTOMER,
+    )
 
 
 class CustomerOrderListView(CustomerRequiredMixin, ListView):
@@ -173,6 +234,33 @@ class CustomerOrderDetailView(CustomerRequiredMixin, DetailView):
             f"Hello, I want to cancel order {self.object.order_number}."
         )
         context["can_print_invoice"] = bool(self.object.invoice_number)
+        return context
+
+
+class CustomerOrderTrackView(TemplateView):
+    template_name = "store/order_track.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        form = OrderTrackingForm(self.request.GET or None)
+        context["form"] = form
+        context["tracked_order"] = None
+        if form.is_bound and form.is_valid():
+            order_number = form.cleaned_data["order_number"]
+            order = (
+                Order.objects.filter(order_number__iexact=order_number)
+                .prefetch_related("status_history")
+                .first()
+            )
+            if order:
+                context["tracked_order"] = order
+                tracker = build_order_tracker(order)
+                tracker["history"] = []
+                context["tracker"] = tracker
+            else:
+                context["form"].add_error(
+                    "order_number", "We couldn't find an order with that number."
+                )
         return context
 
 
