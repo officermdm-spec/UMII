@@ -6,7 +6,7 @@ from django.db import models
 class PaymentMethod(models.Model):
     class Code(models.TextChoices):
         COD = "cod", "Cash on Delivery"
-        # ONLINE = "online", "Online Payment"
+        ONLINE = "online", "Online Payment"
         # BANK_TRANSFER = "bank_transfer", "Bank Transfer"
         # EASYPAISA = "easypaisa", "Easypaisa"
         # JAZZCASH = "jazzcash", "JazzCash"
@@ -21,7 +21,7 @@ class PaymentMethod(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ["sort_order", "name"]
+        ordering = ["name"]
 
     def __str__(self):
         return self.name

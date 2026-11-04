@@ -6,8 +6,8 @@ from apps.payments.services import PaymentError, sync_payment_status
 
 @admin.register(PaymentMethod)
 class PaymentMethodAdmin(admin.ModelAdmin):
-    list_display = ("name", "code", "is_active", "sort_order")
-    list_editable = ("is_active", "sort_order")
+    list_display = ("name", "code", "is_active",)
+    list_editable = ("is_active",)
     list_filter = ("is_active",)
 
 
