@@ -7,7 +7,7 @@ from config.forms import TailwindFormMixin
 class PaymentMethodForm(TailwindFormMixin, forms.ModelForm):
     class Meta:
         model = PaymentMethod
-        fields = ["code", "name", "description", "instructions", "is_active", "sort_order"]
+        fields = ["code", "name", "description", "is_active",]
 
 
 class PaymentStatusForm(TailwindFormMixin, forms.ModelForm):
