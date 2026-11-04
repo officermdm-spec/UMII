@@ -6,10 +6,10 @@ from django.db import models
 class PaymentMethod(models.Model):
     class Code(models.TextChoices):
         COD = "cod", "Cash on Delivery"
-        ONLINE = "online", "Online Payment"
-        BANK_TRANSFER = "bank_transfer", "Bank Transfer"
-        EASYPAISA = "easypaisa", "Easypaisa"
-        JAZZCASH = "jazzcash", "JazzCash"
+        # ONLINE = "online", "Online Payment"
+        # BANK_TRANSFER = "bank_transfer", "Bank Transfer"
+        # EASYPAISA = "easypaisa", "Easypaisa"
+        # JAZZCASH = "jazzcash", "JazzCash"
 
     code = models.CharField(max_length=40, unique=True, choices=Code.choices)
     name = models.CharField(max_length=80)
