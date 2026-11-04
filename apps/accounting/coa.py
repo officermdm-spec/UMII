@@ -80,10 +80,10 @@ DEFAULT_ACCOUNTS = [
 
 PAYMENT_ACCOUNT_MAP = {
     "cod": CASH,
-    "bank_transfer": BANK,
-    "easypaisa": WALLET,
-    "jazzcash": WALLET,
-    "online": WALLET,
+    # "bank_transfer": BANK,
+    # "easypaisa": WALLET,
+    # "jazzcash": WALLET,
+    # "online": WALLET,
 }
 
 EXPENSE_ACCOUNT_MAP = {
