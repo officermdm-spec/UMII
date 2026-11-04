@@ -1,7 +1,7 @@
 from decimal import Decimal
 
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.test import Client, TestCase
 from django.urls import reverse
 
 from apps.accounts.models import StaffModule
@@ -119,3 +119,67 @@ class PermissionTests(TestCase):
         self.assertEqual(response.status_code, 200)
         for value, _label in StaffModule.choices:
             self.assertContains(response, f'value="{value}"')
+
+
+class AuthenticatedSessionSecurityTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="session-user",
+            password="valid-pass123",
+            user_type=User.UserType.CUSTOMER,
+        )
+
+    def test_login_on_one_device_does_not_authenticate_another(self):
+        laptop = Client()
+        mobile = Client()
+        laptop.force_login(self.user)
+
+        laptop_response = laptop.get(reverse("customers:dashboard"))
+        mobile_response = mobile.get(reverse("customers:dashboard"))
+
+        self.assertTrue(laptop_response.wsgi_request.user.is_authenticated)
+        self.assertFalse(mobile_response.wsgi_request.user.is_authenticated)
+        self.assertEqual(mobile_response.status_code, 302)
+
+    def test_customer_login_starts_with_five_minute_timeout(self):
+        response = self.client.post(
+            reverse("customers:login"),
+            {"username": self.user.username, "password": "valid-pass123"},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.cookies["sessionid"]["max-age"], 5 * 60)
+
+    def test_authenticated_activity_refreshes_five_minute_idle_timeout(self):
+        client = Client()
+        client.force_login(self.user)
+
+        first_response = client.get(reverse("customers:dashboard"))
+        self.assertEqual(
+            first_response.cookies["sessionid"]["max-age"],
+            5 * 60,
+        )
+
+        session = client.session
+        session.set_expiry(45)
+        session.save()
+        active_response = client.get(reverse("customers:dashboard"))
+
+        self.assertEqual(
+            active_response.cookies["sessionid"]["max-age"],
+            5 * 60,
+        )
+        self.assertEqual(client.session.get_expiry_age(), 5 * 60)
+
+    def test_expired_session_requires_login_again(self):
+        client = Client()
+        client.force_login(self.user)
+        client.get(reverse("customers:dashboard"))
+
+        session = client.session
+        session.set_expiry(-1)
+        session.save()
+        response = client.get(reverse("customers:dashboard"))
+
+        self.assertFalse(response.wsgi_request.user.is_authenticated)
+        self.assertEqual(response.status_code, 302)

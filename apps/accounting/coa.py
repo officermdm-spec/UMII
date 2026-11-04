@@ -28,8 +28,6 @@ INVENTORY = "1200"
 AP = "2000"
 REFUND_PAYABLE = "2100"
 TAX_PAYABLE = "2200"
-CAPITAL = "3000"
-RETAINED = "3100"
 SALES = "4000"
 SHIPPING = "4010"
 DISC_PRODUCT = "4100"
@@ -57,8 +55,6 @@ DEFAULT_ACCOUNTS = [
     (AP, "Accounts Payable", AccountType.LIABILITY),
     (REFUND_PAYABLE, "Customer Refund Payable", AccountType.LIABILITY),
     (TAX_PAYABLE, "Tax Payable", AccountType.LIABILITY),
-    (CAPITAL, "Owner Capital", AccountType.EQUITY),
-    (RETAINED, "Retained Earnings", AccountType.EQUITY),
     (SALES, "Sales Revenue", AccountType.REVENUE),
     (SHIPPING, "Shipping Revenue", AccountType.REVENUE),
     (DISC_PRODUCT, "Product Discounts", AccountType.CONTRA_REVENUE),

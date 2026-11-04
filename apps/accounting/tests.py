@@ -111,6 +111,11 @@ class AccountingLineCleaningTests(TestCase):
         self.assertEqual(len(queries), 1)
         self.assertEqual([line["account"].code for line in cleaned], ["1100", "4000"])
 
+    def test_unused_equity_accounts_are_not_seeded(self):
+        ensure_accounts()
+
+        self.assertFalse(Account.objects.filter(code__in=["3000", "3100"]).exists())
+
 
 def make_request(user):
     return type("R", (), {"user": user, "session": SessionDict()})()
