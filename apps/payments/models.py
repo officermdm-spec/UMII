@@ -14,9 +14,9 @@ class PaymentMethod(models.Model):
     code = models.CharField(max_length=40, unique=True, choices=Code.choices)
     name = models.CharField(max_length=80)
     description = models.TextField(blank=True)
-    instructions = models.TextField(blank=True)
+    # instructions = models.TextField(blank=True)
     is_active = models.BooleanField(default=True)
-    sort_order = models.PositiveIntegerField(default=0)
+    # sort_order = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
