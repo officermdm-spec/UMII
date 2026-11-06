@@ -2,10 +2,13 @@ from datetime import timedelta
 from decimal import Decimal
 
 from django.test import TestCase
+from django.urls import reverse
 from django.utils import timezone
+from django.contrib.auth import get_user_model
 
 from apps.accounts.permissions import MODULES
 from apps.categories.models import Category
+from apps.orders.models import Order, OrderItem
 from apps.products.models import Product
 from apps.promotions.models import ProductOffer
 from apps.promotions.services import quote_product_offers, unit_price_for
@@ -42,6 +45,78 @@ class ProductOfferTests(TestCase):
     def test_product_offer_reduces_unit_price(self):
         self.assertEqual(unit_price_for(self.product), Decimal("800.00"))
         self.assertTrue(self.product.has_discount)
+        self.assertEqual(self.product.savings_amount, Decimal("200.00"))
+
+    def test_product_detail_shows_live_offer_savings(self):
+        response = self.client.get(self.product.get_absolute_url())
+        self.assertContains(response, "You save")
+        self.assertContains(response, "200")
+
+    def test_cart_shows_total_savings_for_live_offer(self):
+        session = self.client.session
+        session["cart"] = {str(self.product.pk): 2}
+        session.save()
+
+        response = self.client.get(reverse("orders_cart:cart"))
+        self.assertContains(response, "You save")
+        self.assertContains(response, "400")
+
+    def test_homepage_separates_active_website_offers(self):
+        response = self.client.get(reverse("store:home"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Special offers")
+        self.assertIn(self.product, response.context["deals"])
+
+        self.offer.show_on_website = False
+        self.offer.save(update_fields=["show_on_website"])
+        response = self.client.get(reverse("store:home"))
+        self.assertNotContains(response, "Special offers")
+        self.assertNotIn(self.product, response.context["deals"])
+
+    def test_homepage_ranks_best_sellers_by_fulfilled_quantity(self):
+        User = get_user_model()
+        customer = User.objects.create_user(
+            username="best-seller-buyer",
+            password="pass12345",
+        )
+        other_product = Product.objects.create(
+            name="Other product",
+            sku="ELE-102",
+            selling_price=Decimal("500.00"),
+            purchase_price=Decimal("200.00"),
+            category=self.category,
+            vendor=self.vendor,
+        )
+
+        for product, quantity in ((self.product, 2), (other_product, 5)):
+            order = Order.objects.create(
+                customer=customer,
+                billing_full_name="Buyer",
+                billing_phone="03000000000",
+                billing_address="Street",
+                billing_city="Karachi",
+                shipping_full_name="Buyer",
+                shipping_phone="03000000000",
+                shipping_address="Street",
+                shipping_city="Karachi",
+                payment_method_code="cod",
+                status=Order.Status.DELIVERED,
+            )
+            OrderItem.objects.create(
+                order=order,
+                product=product,
+                sku=product.sku,
+                product_name=product.name,
+                quantity=quantity,
+                unit_price=product.selling_price,
+                total=product.selling_price * quantity,
+            )
+
+        response = self.client.get(reverse("store:home"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["top_sellers"][0], other_product)
 
     def test_best_live_offer_wins(self):
         self.create_offer("Smaller sale", "5.00")

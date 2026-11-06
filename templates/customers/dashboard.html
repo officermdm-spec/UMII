@@ -17,7 +17,6 @@
         <span class="font-medium">{{ order.order_number }}</span>
         <span class="flex flex-wrap items-center gap-2">
           {% include "components/status_badge.html" with status=order.status %}
-          {% include "components/status_badge.html" with status=order.payment_status %}
         </span>
       </a>
     {% empty %}

@@ -14,7 +14,7 @@
   </div>
   {% if size == 'lg' %}
     <p class="mt-2 text-sm text-slate-500">
-      You save {{ currency }} {{ product.discount_amount|intcomma }}
+      You save {{ currency }} {{ product.savings_amount|intcomma }}
       · Net payable {{ currency }} {{ product.effective_price|intcomma }}
     </p>
   {% endif %}

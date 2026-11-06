@@ -305,13 +305,28 @@ class OrderStatusUpdateTests(TestCase):
         self.assertEqual(payment.status, Payment.Status.PAID)
         self.assertEqual(payment.transaction_id, "COD-1")
 
-    def test_customer_sees_order_and_payment_status(self):
+    def test_customer_sees_order_status_without_payment_status(self):
         self.client.login(username="buyer", password="pass12345")
         response = self.client.get(reverse("orders_customer:detail", args=[self.order.pk]))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Pending")
-        self.assertContains(response, "COD Pending")
+        self.assertNotContains(response, "COD Pending")
         self.assertTrue(response.context["can_cancel"])
+
+    def test_customer_order_pages_show_discount_savings(self):
+        self.order.catalog_discount = Decimal("125.00")
+        self.order.save(update_fields=["catalog_discount"])
+        self.client.force_login(self.customer)
+
+        detail = self.client.get(reverse("orders_customer:detail", args=[self.order.pk]))
+        self.assertContains(detail, "You saved")
+        self.assertContains(detail, "125")
+        self.assertNotContains(detail, "COD Pending")
+
+        history = self.client.get(reverse("orders_customer:list"))
+        self.assertContains(history, "You saved")
+        self.assertContains(history, "125")
+        self.assertNotContains(history, "COD Pending")
 
     def test_customer_can_cancel_pending_order(self):
         self.client.login(username="buyer", password="pass12345")

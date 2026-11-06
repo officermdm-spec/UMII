@@ -168,7 +168,7 @@
       <tr class="grand"><td>TOTAL {{ currency }}</td><td class="amt">{{ order.grand_total|intcomma }}</td></tr>
     </table>
     <hr class="rule">
-    <div>Pay: {{ order.payment_method_code|upper }} · {{ order.get_payment_status_display }}</div>
+    <div>Pay: {{ order.payment_method_code|upper }}{% if not is_customer_invoice %} · {{ order.get_payment_status_display }}{% endif %}</div>
     <div>Status: {{ order.get_status_display }}</div>
     <div class="center barcode">{{ invoice_number }}</div>
     <p class="center muted">Thank you for shopping{% if site_name %} at {{ site_name }}{% endif %}.</p>

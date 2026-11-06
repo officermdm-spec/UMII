@@ -151,6 +151,10 @@ class Product(models.Model):
         return (saved * Decimal("100") / self.selling_price).quantize(Decimal("1"))
 
     @property
+    def savings_amount(self):
+        return max(self.selling_price - self.effective_price, Decimal("0.00"))
+
+    @property
     def offer_badge(self):
         from apps.promotions.services import product_offer_badge
 

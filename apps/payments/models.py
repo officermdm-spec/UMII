@@ -30,9 +30,9 @@ class PaymentMethod(models.Model):
 class Payment(models.Model):
     class Status(models.TextChoices):
         PENDING = "pending", "Pending"
-        PROCESSING = "processing", "Processing"
+        # PROCESSING = "processing", "Processing"
         PAID = "paid", "Paid"
-        FAILED = "failed", "Failed"
+        # FAILED = "failed", "Failed"
         REFUNDED = "refunded", "Refunded"
 
     order = models.ForeignKey(

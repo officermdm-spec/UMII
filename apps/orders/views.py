@@ -399,6 +399,11 @@ class StaffOrderInvoiceView(OrderInvoiceMixin, ModulePermissionMixin, DetailView
 
 
 class CustomerOrderInvoiceView(OrderInvoiceMixin, CustomerRequiredMixin, DetailView):
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["is_customer_invoice"] = True
+        return context
+
     def get_queryset(self):
         return Order.objects.filter(customer=self.request.user).prefetch_related("items", "payments")
 

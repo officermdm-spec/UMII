@@ -114,6 +114,10 @@ class Order(models.Model):
             self.order_number = next_document_number(Order, "order_number", "ORD")
         super().save(*args, **kwargs)
 
+    @property
+    def savings_amount(self):
+        return self.discount + self.catalog_discount + self.offer_discount
+
     def __str__(self):
         return self.order_number
 

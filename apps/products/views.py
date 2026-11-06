@@ -1,15 +1,18 @@
 from django.contrib import messages
 from django.db import transaction
-from django.db.models import Avg, Q
+from django.db.models import Avg, Q, Sum
+from django.db.models.functions import Coalesce
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
+from django.utils import timezone
 from django.views import View
 from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
 
 from apps.accounts.mixins import ModulePermissionMixin, SafeDeleteMixin
 from apps.accounts.permissions import MODULES, has_module_permission
 from apps.categories.models import Category
+from apps.orders.models import Order, OrderItem
 from apps.products.barcode import (
     BarcodeLookupError,
     get_product_by_barcode,
@@ -17,6 +20,7 @@ from apps.products.barcode import (
 )
 from apps.products.forms import BrandForm, ProductForm, ProductVariantFormSet
 from apps.products.models import Brand, Product, ProductImage
+from apps.promotions.models import ProductOffer
 
 
 class ProductListView(ModulePermissionMixin, ListView):
@@ -367,18 +371,69 @@ class StoreHomeView(ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["categories"] = Category.objects.filter(is_active=True, parent__isnull=True)
-        context["deals"] = (
-            Product.objects.filter(
-                is_active=True, variant_parent__isnull=True, discount_percent__gt=0
+        now = timezone.now()
+        offer_product_ids = list(
+            ProductOffer.objects.filter(
+                is_active=True,
+                show_on_website=True,
+                start_date__lte=now,
+                end_date__gte=now,
             )
-            .select_related("category")
+            .order_by("-start_date", "-pk")
+            .values_list("products__id", flat=True)
+        )
+        offer_product_ids = list(
+            dict.fromkeys(product_id for product_id in offer_product_ids if product_id)
+        )
+        offer_products = (
+            Product.objects.filter(pk__in=offer_product_ids, is_active=True)
+            .select_related("category", "variant_parent")
             .prefetch_related(
                 "inventories",
                 "images",
                 "product_offers",
                 "variants__inventories",
-            )[:4]
+            )
         )
+        offer_products_by_id = {product.pk: product for product in offer_products}
+        context["deals"] = [
+            offer_products_by_id[product_id]
+            for product_id in offer_product_ids
+            if product_id in offer_products_by_id
+        ][:8]
+
+        top_seller_rows = (
+            OrderItem.objects.filter(
+                order__status__in=[Order.Status.DELIVERED, Order.Status.RECEIVED],
+                product__isnull=False,
+            )
+            .annotate(
+                catalog_product_id=Coalesce(
+                    "product__variant_parent_id",
+                    "product_id",
+                )
+            )
+            .values("catalog_product_id")
+            .annotate(sold_quantity=Sum("quantity"))
+            .order_by("-sold_quantity", "catalog_product_id")[:8]
+        )
+        top_seller_ids = [row["catalog_product_id"] for row in top_seller_rows]
+        top_sellers = Product.objects.filter(
+            pk__in=top_seller_ids,
+            is_active=True,
+            variant_parent__isnull=True,
+        ).select_related("category").prefetch_related(
+            "inventories",
+            "images",
+            "product_offers",
+            "variants__inventories",
+        )
+        products_by_id = {product.pk: product for product in top_sellers}
+        context["top_sellers"] = [
+            products_by_id[product_id]
+            for product_id in top_seller_ids
+            if product_id in products_by_id
+        ]
         return context
 
 

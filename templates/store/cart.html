@@ -53,7 +53,10 @@
                 <button class="font-medium text-brand-700">Update</button>
               </form>
             </td>
-            <td class="px-4 py-3 font-semibold">{{ currency }} {{ row.line_total|intcomma }}</td>
+            <td class="px-4 py-3 font-semibold">
+              {{ currency }} {{ row.line_total|intcomma }}
+              {% if row.product_discount %}<span class="mt-1 block text-xs font-normal text-emerald-700">You save {{ currency }} {{ row.product_discount|intcomma }}</span>{% endif %}
+            </td>
             <td class="px-4 py-3">
               <form method="post" action="{% url 'orders_cart:remove' row.product.pk %}">
                 {% csrf_token %}
@@ -69,7 +72,7 @@
     <h2 class="mb-4 text-lg font-bold">Order summary</h2>
     <p class="flex justify-between"><span>Subtotal</span><span>{{ currency }} {{ summary.list_subtotal|default:summary.subtotal|intcomma }}</span></p>
     {% if summary.product_discount %}
-      <p class="mt-2 flex justify-between text-violet-700"><span>Product offer</span><span>-{{ currency }} {{ summary.product_discount|intcomma }}</span></p>
+      <p class="mt-2 flex justify-between text-emerald-700"><span>You save</span><span>{{ currency }} {{ summary.product_discount|intcomma }}</span></p>
     {% endif %}
     <p class="mt-2 flex justify-between"><span>Shipping</span><span>{{ currency }} {{ summary.shipping|intcomma }}</span></p>
     <p class="mt-2 flex justify-between"><span>Tax</span><span>{{ currency }} {{ summary.tax|intcomma }}</span></p>

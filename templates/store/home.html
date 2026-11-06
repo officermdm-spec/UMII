@@ -51,6 +51,37 @@
   <div class="flex items-center gap-3"><span class="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-100 text-indigo-700">♡</span><span><strong class="block text-slate-800">Friendly support</strong><small class="text-slate-500">We're here to help</small></span></div>
 </section>
 
+{% if deals %}
+<section class="mt-10 rounded-3xl bg-gradient-to-r from-rose-50 via-amber-50 to-violet-50 p-5 sm:p-7">
+  <div class="flex items-center justify-between">
+    <div>
+      <p class="text-xs font-semibold uppercase tracking-[0.18em] text-rose-600">Limited-time deals</p>
+      <h2 class="mt-1 text-2xl font-bold tracking-tight">Special offers</h2>
+    </div>
+    <a href="{% url 'store:product_list' %}" class="btn-secondary px-4 py-2 text-sm font-semibold">Shop all</a>
+  </div>
+  <div class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+    {% for product in deals %}
+      {% include "components/product_card.html" %}
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{% if top_sellers %}
+<section class="mt-12">
+  <div>
+    <p class="text-xs font-semibold uppercase tracking-[0.18em] text-brand-600">Customer favorites</p>
+    <h2 class="mt-1 text-2xl font-bold tracking-tight">Best sellers</h2>
+  </div>
+  <div class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+    {% for product in top_sellers %}
+      {% include "components/product_card.html" %}
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
 <section class="mt-12">
   <div>
     <p class="text-xs font-semibold uppercase tracking-[0.18em] text-brand-600">Browse your way</p>
