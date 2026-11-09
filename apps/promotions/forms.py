@@ -43,9 +43,16 @@ def _stamp_datetime_fields(form, names=("start_date", "end_date")):
 
 def _bind_product_queryset(form):
     products = promotable_products()
+    selected_product_ids = []
     if form.instance.pk:
+        selected_product_ids = list(
+            form.instance.products.values_list("pk", flat=True)
+        )
+        products = Product.objects.filter(
+            Q(pk__in=products.values("pk")) | Q(pk__in=selected_product_ids)
+        )
         products = (
-            Product.objects.filter(Q(pk__in=products) | Q(pk__in=form.instance.products.all()))
+            products
             .annotate(
                 on_hand=Sum(F("inventories__current_stock") - F("inventories__reserved_stock"))
             )
@@ -53,6 +60,7 @@ def _bind_product_queryset(form):
             .order_by("name")
         )
     form.fields["products"].queryset = products
+    form.initial["products"] = selected_product_ids
 
 
 class ProductOfferForm(TailwindFormMixin, forms.ModelForm):

@@ -340,6 +340,21 @@ class ProductOfferTests(TestCase):
 
     def test_edit_offer_preselects_its_products_without_javascript(self):
         User = get_user_model()
+        available_product = Product.objects.create(
+            name="Available phone",
+            sku="ELE-102",
+            selling_price=Decimal("800.00"),
+            purchase_price=Decimal("300.00"),
+            category=self.category,
+            vendor=self.vendor,
+        )
+        Inventory.objects.create(
+            product=available_product,
+            warehouse=self.warehouse,
+            current_stock=5,
+        )
+        self.product.is_active = False
+        self.product.save(update_fields=["is_active"])
         staff = User.objects.create_user(
             username="offer-edit-staff",
             password="test-password",
@@ -357,6 +372,14 @@ class ProductOfferTests(TestCase):
         self.assertRegex(
             response.content.decode(),
             rf'name="products" value="{self.product.pk}"[^>]*checked',
+        )
+        self.assertRegex(
+            response.content.decode(),
+            rf'name="products" value="{available_product.pk}"[^>]*>',
+        )
+        self.assertNotRegex(
+            response.content.decode(),
+            rf'name="products" value="{available_product.pk}"[^>]*checked',
         )
         self.assertContains(response, "1 product currently on this offer")
         self.assertNotContains(response, "0 products selected")
