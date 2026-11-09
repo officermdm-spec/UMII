@@ -1,5 +1,17 @@
 from django.db import transaction
-from django.db.models import Exists, F, OuterRef, Q, Sum
+from django.db.models import (
+    Case,
+    Exists,
+    F,
+    IntegerField,
+    OuterRef,
+    Q,
+    Subquery,
+    Sum,
+    Value,
+    When,
+)
+from django.db.models.functions import Coalesce
 
 from apps.inventory.models import Inventory, StockTransaction, Warehouse
 from apps.products.models import Product
@@ -7,6 +19,40 @@ from apps.products.models import Product
 
 class StockError(Exception):
     pass
+
+
+def available_catalog_products(queryset):
+    own_stock = (
+        Inventory.objects.filter(product_id=OuterRef("pk"))
+        .order_by()
+        .values("product_id")
+        .annotate(total=Sum(F("current_stock") - F("reserved_stock")))
+        .values("total")[:1]
+    )
+    variant_stock = (
+        Inventory.objects.filter(
+            product__variant_parent_id=OuterRef("pk"),
+            product__is_active=True,
+        )
+        .order_by()
+        .values("product__variant_parent_id")
+        .annotate(total=Sum(F("current_stock") - F("reserved_stock")))
+        .values("total")[:1]
+    )
+    variants = Product.objects.filter(variant_parent_id=OuterRef("pk"))
+    queryset = queryset.alias(
+        _catalog_own_stock=Coalesce(Subquery(own_stock), Value(0)),
+        _catalog_variant_stock=Coalesce(Subquery(variant_stock), Value(0)),
+        _catalog_has_variants=Exists(variants),
+    )
+    return queryset.alias(
+        _catalog_available_stock=F("_catalog_variant_stock")
+        + Case(
+            When(_catalog_has_variants=True, size="", then=Value(0)),
+            default=F("_catalog_own_stock"),
+            output_field=IntegerField(),
+        )
+    ).filter(_catalog_available_stock__gt=0)
 
 
 def get_default_warehouse():

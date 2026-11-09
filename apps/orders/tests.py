@@ -141,6 +141,27 @@ class GuestCheckoutTests(TestCase):
             defaults={"name": "Cash on Delivery"},
         )
 
+    def test_cart_blocks_checkout_when_saved_item_is_out_of_stock(self):
+        session = self.client.session
+        session["cart"] = {str(self.product.pk): 1}
+        session.save()
+        self.product.inventories.update(current_stock=0, reserved_stock=0)
+
+        response = self.client.get(reverse("orders_cart:cart"))
+
+        self.assertFalse(response.context["summary"]["can_checkout"])
+        self.assertEqual(response.context["summary"]["item_count"], 1)
+        self.assertEqual(
+            response.context["summary"]["items"][0]["available_stock"],
+            0,
+        )
+        self.assertContains(response, "Currently out of stock")
+        self.assertContains(response, "Remove")
+        self.assertNotContains(response, reverse("orders_checkout:checkout"))
+
+        checkout = self.client.get(reverse("orders_checkout:checkout"))
+        self.assertRedirects(checkout, reverse("orders_cart:cart"))
+
     def test_guest_checkout_creates_customer_account_and_trackable_order(self):
         self.client.post(
             reverse("orders_cart:add", args=[self.product.pk]),

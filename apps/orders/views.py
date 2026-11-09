@@ -113,6 +113,12 @@ class CheckoutView(FormView):
         if not summary["items"]:
             messages.info(request, "Your cart is empty.")
             return redirect("orders_cart:cart")
+        if not summary["can_checkout"]:
+            messages.error(
+                request,
+                "Update or remove unavailable items before continuing to checkout.",
+            )
+            return redirect("orders_cart:cart")
         return super().dispatch(request, *args, **kwargs)
 
     def get_form_kwargs(self):

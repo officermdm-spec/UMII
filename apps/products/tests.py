@@ -54,6 +54,83 @@ class ProductVariantTests(TestCase):
             allowed_modules=[MODULES.PRODUCTS],
         )
 
+    def test_storefront_hides_products_without_available_stock(self):
+        Product.objects.create(
+            name="Sold Out Tee",
+            sku="SOLD-OUT-TEE",
+            selling_price=Decimal("1000.00"),
+            purchase_price=Decimal("500.00"),
+            category=self.category,
+            vendor=self.vendor,
+        )
+        available = Product.objects.create(
+            name="Available Tee",
+            sku="AVAILABLE-TEE",
+            selling_price=Decimal("1000.00"),
+            purchase_price=Decimal("500.00"),
+            category=self.category,
+            vendor=self.vendor,
+        )
+        Inventory.objects.create(
+            product=available,
+            warehouse=self.warehouse,
+            current_stock=2,
+        )
+        sized_product = Product.objects.create(
+            name="Sized Tee",
+            sku="SIZED-TEE",
+            selling_price=Decimal("1000.00"),
+            purchase_price=Decimal("500.00"),
+            category=self.category,
+            vendor=self.vendor,
+        )
+        size_variant = Product.objects.create(
+            name=sized_product.name,
+            sku="SIZED-TEE-S",
+            selling_price=sized_product.selling_price,
+            purchase_price=sized_product.purchase_price,
+            category=self.category,
+            vendor=self.vendor,
+            variant_parent=sized_product,
+            size="S",
+        )
+        Inventory.objects.create(
+            product=size_variant,
+            warehouse=self.warehouse,
+            current_stock=3,
+        )
+        empty_category = Category.objects.create(
+            name="Sold Out Category",
+            slug="sold-out-category",
+        )
+        Product.objects.create(
+            name="Sold Out Only",
+            sku="SOLD-OUT-ONLY",
+            selling_price=Decimal("1000.00"),
+            purchase_price=Decimal("500.00"),
+            category=empty_category,
+            vendor=self.vendor,
+        )
+
+        home = self.client.get(reverse("store:home"))
+        self.assertEqual(home.status_code, 200)
+        self.assertContains(home, "Available Tee")
+        self.assertContains(home, "Sized Tee")
+        self.assertNotContains(home, "Sold Out Tee")
+        self.assertNotContains(home, "Sold Out Only")
+        self.assertNotIn(
+            empty_category,
+            list(home.context["shop_categories"]),
+        )
+        self.assertNotIn(
+            empty_category,
+            list(home.context["category_sections"]),
+        )
+
+        shop = self.client.get(reverse("store:product_list"))
+        self.assertContains(shop, "Available Tee")
+        self.assertNotContains(shop, "Sold Out Tee")
+
     def test_staff_can_create_product_with_size_variants(self):
         self.client.login(username="variant-staff", password="pass12345")
         get_response = self.client.get(reverse("products:create"))

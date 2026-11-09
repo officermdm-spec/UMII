@@ -87,8 +87,12 @@ def cart_items(request):
     if request.user.is_authenticated and getattr(request.user, "user_type", None) == request.user.UserType.CUSTOMER:
         items = []
         for item in CartItem.objects.filter(user=request.user).select_related(
-            "product", "product__category"
-        ).prefetch_related("product__product_offers"):
+            "product", "product__category", "product__variant_parent"
+        ).prefetch_related(
+            "product__inventories",
+            "product__variants__inventories",
+            "product__product_offers",
+        ):
             items.append(
                 {
                     "product": item.product,
@@ -96,11 +100,18 @@ def cart_items(request):
                     "unit_price": item.product.effective_price,
                     "list_price": item.product.selling_price,
                     "line_total": item.line_total,
+                    "available_stock": item.product.get_available_stock(),
                 }
             )
         return items
     cart = request.session.get(SESSION_CART_KEY, {})
-    products = Product.objects.filter(pk__in=cart.keys(), is_active=True).prefetch_related("product_offers")
+    products = Product.objects.filter(pk__in=cart.keys(), is_active=True).select_related(
+        "category", "variant_parent"
+    ).prefetch_related(
+        "inventories",
+        "variants__inventories",
+        "product_offers",
+    )
     product_map = {str(p.pk): p for p in products}
     items = []
     for key, qty in cart.items():
@@ -115,6 +126,7 @@ def cart_items(request):
                 "unit_price": product.effective_price,
                 "list_price": product.selling_price,
                 "line_total": product.effective_price * qty,
+                "available_stock": product.get_available_stock(),
             }
         )
     return items
@@ -124,6 +136,11 @@ def cart_summary(request):
     items = cart_items(request)
     request.session.pop("applied_coupon", None)
     quote = quote_product_offers(items)
+    available_stock_by_product = {
+        row["product"].pk: row["available_stock"] for row in items
+    }
+    for row in quote["items"]:
+        row["available_stock"] = available_stock_by_product[row["product"].pk]
     shipping = settings.SHIPPING_FLAT_RATE if items else Decimal("0.00")
     tax = (quote["merchandise_total"] * settings.TAX_PERCENT / Decimal("100")).quantize(Decimal("0.01"))
     grand_total = quote["merchandise_total"] + shipping + tax
@@ -137,6 +154,11 @@ def cart_summary(request):
         "tax": tax,
         "grand_total": grand_total,
         "item_count": sum(row["quantity"] for row in quote["items"]),
+        "can_checkout": bool(quote["items"])
+        and all(
+            row["available_stock"] >= row["quantity"]
+            for row in quote["items"]
+        ),
     }
 
 

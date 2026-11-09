@@ -9,6 +9,7 @@ from django.utils import timezone
 
 from apps.accounts.permissions import MODULES
 from apps.categories.models import Category
+from apps.inventory.models import Inventory, Warehouse
 from apps.orders.models import Order, OrderItem
 from apps.products.models import Product
 from apps.promotions.models import ProductOffer
@@ -20,6 +21,7 @@ class ProductOfferTests(TestCase):
     def setUp(self):
         self.category = Category.objects.create(name="Electronics", slug="electronics")
         self.vendor = Vendor.objects.create(company_name="Acme", phone="03001111111")
+        self.warehouse = Warehouse.objects.create(name="Main", code="MAIN")
         self.product = Product.objects.create(
             name="Demo phone",
             sku="ELE-101",
@@ -27,6 +29,11 @@ class ProductOfferTests(TestCase):
             purchase_price=Decimal("400.00"),
             category=self.category,
             vendor=self.vendor,
+        )
+        Inventory.objects.create(
+            product=self.product,
+            warehouse=self.warehouse,
+            current_stock=20,
         )
         self.offer = self.create_offer("Summer Sale", "20.00")
 
@@ -168,16 +175,20 @@ class ProductOfferTests(TestCase):
         )
         products = [self.product]
         for index in range(2, 7):
-            products.append(
-                Product.objects.create(
-                    name=f"Demo phone {index}",
-                    sku=f"ELE-10{index}",
-                    selling_price=Decimal("1000.00"),
-                    purchase_price=Decimal("400.00"),
-                    category=self.category,
-                    vendor=self.vendor,
-                )
+            product = Product.objects.create(
+                name=f"Demo phone {index}",
+                sku=f"ELE-10{index}",
+                selling_price=Decimal("1000.00"),
+                purchase_price=Decimal("400.00"),
+                category=self.category,
+                vendor=self.vendor,
             )
+            Inventory.objects.create(
+                product=product,
+                warehouse=self.warehouse,
+                current_stock=20,
+            )
+            products.append(product)
         self.category.image.save(
             "electronics-banner.jpg",
             SimpleUploadedFile(
@@ -229,6 +240,11 @@ class ProductOfferTests(TestCase):
             purchase_price=Decimal("200.00"),
             category=self.category,
             vendor=self.vendor,
+        )
+        Inventory.objects.create(
+            product=other_product,
+            warehouse=self.warehouse,
+            current_stock=20,
         )
 
         for product, quantity in ((self.product, 2), (other_product, 5)):

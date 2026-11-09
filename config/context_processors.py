@@ -3,7 +3,9 @@ from django.db.models import Q
 
 from apps.accounts.permissions import can_write, is_read_only_staff, nav_modules_for_user
 from apps.categories.models import Category
+from apps.inventory.services import available_catalog_products
 from apps.orders.cart import cart_summary
+from apps.products.models import Product
 
 
 def storefront(request):
@@ -12,11 +14,22 @@ def storefront(request):
     categories = (
         Category.objects.filter(is_active=True, parent__isnull=True)
         .filter(
-            Q(products__is_active=True, products__variant_parent__isnull=True)
+            Q(
+                products__in=available_catalog_products(
+                    Product.objects.filter(
+                        is_active=True,
+                        variant_parent__isnull=True,
+                    )
+                )
+            )
             | Q(
                 children__is_active=True,
-                children__products__is_active=True,
-                children__products__variant_parent__isnull=True,
+                children__products__in=available_catalog_products(
+                    Product.objects.filter(
+                        is_active=True,
+                        variant_parent__isnull=True,
+                    )
+                ),
             )
         )
         .distinct()

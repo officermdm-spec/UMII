@@ -12,6 +12,7 @@ from django.views.generic import CreateView, DeleteView, DetailView, ListView, U
 from apps.accounts.mixins import ModulePermissionMixin, SafeDeleteMixin
 from apps.accounts.permissions import MODULES, has_module_permission
 from apps.categories.models import Category
+from apps.inventory.services import available_catalog_products
 from apps.orders.models import Order, OrderItem
 from apps.products.barcode import (
     BarcodeLookupError,
@@ -358,7 +359,9 @@ class StoreHomeView(ListView):
 
     def get_queryset(self):
         return (
-            Product.objects.filter(is_active=True, variant_parent__isnull=True)
+            available_catalog_products(
+                Product.objects.filter(is_active=True, variant_parent__isnull=True)
+            )
             .select_related("category")
             .prefetch_related(
                 "inventories",
@@ -371,7 +374,9 @@ class StoreHomeView(ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         category_products = (
-            Product.objects.filter(is_active=True, variant_parent__isnull=True)
+            available_catalog_products(
+                Product.objects.filter(is_active=True, variant_parent__isnull=True)
+            )
             .select_related("category")
             .prefetch_related(
                 "inventories",
@@ -383,8 +388,9 @@ class StoreHomeView(ListView):
         )
         context["category_sections"] = Category.objects.filter(
             is_active=True,
-            products__is_active=True,
-            products__variant_parent__isnull=True,
+            products__in=available_catalog_products(
+                Product.objects.filter(is_active=True, variant_parent__isnull=True)
+            ),
         ).distinct().prefetch_related(
             Prefetch(
                 "products",
@@ -395,8 +401,9 @@ class StoreHomeView(ListView):
         context["shop_categories"] = Category.objects.filter(
             is_active=True,
             parent__isnull=True,
-            products__is_active=True,
-            products__variant_parent__isnull=True,
+            products__in=available_catalog_products(
+                Product.objects.filter(is_active=True, variant_parent__isnull=True)
+            ),
         ).distinct().order_by("name")
         now = timezone.now()
         context["featured_offer"] = (
@@ -406,7 +413,9 @@ class StoreHomeView(ListView):
                 start_date__lte=now,
                 end_date__gte=now,
                 image__isnull=False,
-                products__is_active=True,
+                products__in=available_catalog_products(
+                    Product.objects.filter(is_active=True, variant_parent__isnull=True)
+                ),
             )
             .exclude(image="")
             .order_by("-start_date", "-pk")
@@ -427,7 +436,13 @@ class StoreHomeView(ListView):
             dict.fromkeys(product_id for product_id in offer_product_ids if product_id)
         )
         offer_products = (
-            Product.objects.filter(pk__in=offer_product_ids, is_active=True)
+            available_catalog_products(
+                Product.objects.filter(
+                    pk__in=offer_product_ids,
+                    is_active=True,
+                    variant_parent__isnull=True,
+                )
+            )
             .select_related("category", "variant_parent")
             .prefetch_related(
                 "inventories",
@@ -459,10 +474,12 @@ class StoreHomeView(ListView):
             .order_by("-sold_quantity", "catalog_product_id")[:12]
         )
         top_seller_ids = [row["catalog_product_id"] for row in top_seller_rows]
-        top_sellers = Product.objects.filter(
-            pk__in=top_seller_ids,
-            is_active=True,
-            variant_parent__isnull=True,
+        top_sellers = available_catalog_products(
+            Product.objects.filter(
+                pk__in=top_seller_ids,
+                is_active=True,
+                variant_parent__isnull=True,
+            )
         ).select_related("category").prefetch_related(
             "inventories",
             "images",
@@ -485,7 +502,9 @@ class StoreProductListView(ListView):
 
     def get_queryset(self):
         qs = (
-            Product.objects.filter(is_active=True, variant_parent__isnull=True)
+            available_catalog_products(
+                Product.objects.filter(is_active=True, variant_parent__isnull=True)
+            )
             .select_related("category", "brand")
             .prefetch_related(
                 "inventories",
@@ -527,11 +546,22 @@ class StoreProductListView(ListView):
         context["categories"] = (
             Category.objects.filter(is_active=True)
             .filter(
-                Q(products__is_active=True, products__variant_parent__isnull=True)
+                Q(
+                    products__in=available_catalog_products(
+                        Product.objects.filter(
+                            is_active=True,
+                            variant_parent__isnull=True,
+                        )
+                    )
+                )
                 | Q(
                     children__is_active=True,
-                    children__products__is_active=True,
-                    children__products__variant_parent__isnull=True,
+                    children__products__in=available_catalog_products(
+                        Product.objects.filter(
+                            is_active=True,
+                            variant_parent__isnull=True,
+                        )
+                    ),
                 )
             )
             .distinct()
@@ -603,6 +633,14 @@ class StoreProductDetailView(DetailView):
                 is_active=True,
                 variant_parent__isnull=True,
                 category=product.category,
+            )
+            .filter(
+                pk__in=available_catalog_products(
+                    Product.objects.filter(
+                        is_active=True,
+                        variant_parent__isnull=True,
+                    )
+                )
             )
             .exclude(pk=product.pk)
             .prefetch_related("inventories", "images", "product_offers")[:4]
