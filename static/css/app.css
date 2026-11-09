@@ -110,18 +110,33 @@ body {
   transition: color 150ms ease;
 }
 .store-category-nav a:hover { color: #768a5e; }
-.store-menu-open { overflow: hidden; }
+.store-menu-checkbox {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+.store-menu-trigger { cursor: pointer; }
+.store-menu-checkbox:focus-visible ~ .glass-nav .store-menu-trigger {
+  outline: 2px solid var(--clay);
+  outline-offset: 2px;
+}
 .store-menu {
   position: fixed;
   inset: 0;
   z-index: 60;
+  display: none;
 }
+.store-menu-checkbox:checked ~ .store-menu { display: block; }
 .store-menu-backdrop {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  border: 0;
+  cursor: pointer;
   background: rgba(36, 27, 26, 0.54);
 }
 .store-menu-drawer {
@@ -152,6 +167,11 @@ body {
 @keyframes store-menu-enter {
   from { opacity: 0.7; transform: translateX(-0.75rem); }
   to { opacity: 1; transform: translateX(0); }
+}
+@media (min-width: 768px) {
+  .store-menu-checkbox,
+  .store-menu-trigger,
+  .store-menu { display: none; }
 }
 
 .brand-mark {

@@ -3,11 +3,12 @@
     <span>Thoughtfully chosen essentials for every day</span>
     <a href="{% url 'store:product_list' %}">Discover the collection <span aria-hidden="true">→</span></a>
   </div>
+  <input id="store-menu-toggle" class="store-menu-checkbox" type="checkbox" aria-label="Toggle store menu">
   <div class="glass-nav border-b backdrop-blur-xl">
-    <div class="mx-auto grid max-w-7xl grid-cols-[auto_1fr_auto] items-center gap-3 px-4 py-3 sm:px-6 lg:px-8">
-      <button type="button" class="store-menu-trigger justify-self-start rounded-full p-2 text-brand-700 transition hover:bg-brand-50" data-menu-toggle aria-controls="mobile-nav" aria-expanded="false" aria-label="Open menu">
+    <div class="store-menu-header-row mx-auto grid max-w-7xl grid-cols-[auto_1fr_auto] items-center gap-3 px-4 py-3 sm:px-6 lg:px-8">
+      <label for="store-menu-toggle" class="store-menu-trigger justify-self-start rounded-full p-2 text-brand-700 transition hover:bg-brand-50" aria-controls="mobile-nav" aria-label="Toggle store menu">
         <svg viewBox="0 0 24 24" class="h-7 w-7 fill-none stroke-current" stroke-width="1.8"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
-      </button>
+      </label>
       <a href="{% url 'store:home' %}" class="col-start-2 row-start-1 justify-self-center">
         {% include "components/brand_logo.html" with logo_class="h-12 w-auto max-w-[190px] object-contain sm:h-14 sm:max-w-[240px]" %}
       </a>
@@ -47,14 +48,14 @@
       </div>
     </nav>
   </div>
-  <div id="mobile-nav" class="store-menu hidden" aria-hidden="true">
-    <button type="button" class="store-menu-backdrop" data-menu-close aria-label="Close menu"></button>
+  <div id="mobile-nav" class="store-menu">
+    <label for="store-menu-toggle" class="store-menu-backdrop" aria-label="Close menu"></label>
     <nav class="store-menu-drawer" aria-label="Main menu">
       <div class="flex items-center justify-between border-b border-brand-100 pb-4">
         <span class="text-lg font-semibold text-brand-800">Browse the store</span>
-        <button type="button" class="rounded-full p-2 text-brand-700 hover:bg-brand-100" data-menu-close aria-label="Close menu">
+        <label for="store-menu-toggle" class="cursor-pointer rounded-full p-2 text-brand-700 hover:bg-brand-100" aria-label="Close menu">
           <svg viewBox="0 0 24 24" class="h-6 w-6 fill-none stroke-current" stroke-width="2"><path d="m6 6 12 12M18 6 6 18"/></svg>
-        </button>
+        </label>
       </div>
       <form action="{% url 'store:product_list' %}" method="get" class="my-4">
         <label class="sr-only" for="mobile-search">Search products</label>

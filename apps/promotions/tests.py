@@ -266,3 +266,30 @@ class ProductOfferTests(TestCase):
         response = self.client.get(reverse("promotions:offer_list"))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Summer Sale")
+
+    def test_edit_offer_preselects_its_products_without_javascript(self):
+        User = get_user_model()
+        staff = User.objects.create_user(
+            username="offer-edit-staff",
+            password="test-password",
+            user_type=User.UserType.STAFF,
+            allowed_modules=[MODULES.PROMOTIONS],
+            is_staff=True,
+        )
+        self.client.force_login(staff)
+
+        response = self.client.get(
+            reverse("promotions:offer_update", args=[self.offer.pk])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertRegex(
+            response.content.decode(),
+            rf'name="products" value="{self.product.pk}"[^>]*checked',
+        )
+        self.assertContains(response, "1 product currently on this offer")
+        self.assertNotContains(response, "0 products selected")
+        offer_form = response.content.decode().split(
+            '<form method="post" enctype="multipart/form-data"', 1
+        )[1].split("</form>", 1)[0]
+        self.assertNotIn("<script", offer_form)

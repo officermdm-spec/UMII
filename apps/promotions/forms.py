@@ -53,15 +53,14 @@ def _bind_product_queryset(form):
             .order_by("name")
         )
     form.fields["products"].queryset = products
-    form.fields["products"].widget.attrs["class"] = "grid gap-2 text-sm"
 
 
 class ProductOfferForm(TailwindFormMixin, forms.ModelForm):
     products = InventoryProductChoiceField(
         queryset=Product.objects.none(),
         required=True,
-        widget=forms.SelectMultiple(attrs={"size": 1}),
-        help_text="Select one or more products this sale should cover (Ctrl/Cmd-click to select multiple).",
+        widget=forms.CheckboxSelectMultiple,
+        help_text="Select all products this offer should cover. Products already on this offer are preselected.",
     )
 
     class Meta:
