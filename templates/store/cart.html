@@ -24,8 +24,8 @@
           <tr class="border-t">
             <td class="px-4 py-3">
               <div class="flex items-center gap-3">
-                <div class="h-14 w-14 overflow-hidden rounded-xl bg-slate-100">
-                  {% if row.product.cover_image %}<img src="{{ row.product.cover_image.url }}" alt="" class="h-full w-full object-cover">{% endif %}
+                <div class="h-14 w-14 flex-shrink-0 overflow-hidden rounded-xl bg-slate-100">
+                  {% if row.product.cover_image %}<img src="{{ row.product.cover_image.url }}" alt="{{ row.product.name }}" class="h-full w-full object-contain">{% endif %}
                 </div>
                 <div>
                   <p class="font-semibold text-slate-800">{{ row.product.name }}</p>

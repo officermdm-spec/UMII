@@ -176,8 +176,6 @@ input[type="checkbox"] { margin-right: 0.35rem; }
 }
 .campaign-copy { position: relative; z-index: 1; }
 .campaign-image { min-height: 16rem; background: #ddcbbb; }
-.campaign-image img { transition: transform 500ms ease; }
-.campaign-image:hover img { transform: scale(1.035); }
 .campaign-image-placeholder {
   background:
     radial-gradient(circle at 72% 35%, rgba(244, 241, 232, 0.7) 0 4rem, transparent 4.1rem),
@@ -337,7 +335,7 @@ input[type="checkbox"] { margin-right: 0.35rem; }
   transition: transform 190ms ease, border-color 190ms ease, box-shadow 190ms ease;
 }
 .store-main .product-card { border-radius: 1rem; }
-.store-main .product-card > a:first-child { aspect-ratio: 0.82; }
+.store-main .product-card > a:first-child { aspect-ratio: 1; }
 .store-main .product-card > div { padding: 0.9rem; }
 .store-main .product-card h3 { font-size: 0.9rem; }
 .store-main .product-card form { margin-top: 0.75rem; }
@@ -346,8 +344,6 @@ input[type="checkbox"] { margin-right: 0.35rem; }
   border-color: rgba(92, 64, 52, 0.22);
   box-shadow: 0 26px 58px -32px rgba(92, 64, 52, 0.35);
 }
-.product-card .product-image { transition: transform 350ms ease; }
-.product-card:hover .product-image { transform: scale(1.045); }
 
 .trust-strip {
   border: 1px solid rgba(92, 64, 52, 0.12);

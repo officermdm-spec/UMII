@@ -75,6 +75,63 @@ class ProductOfferTests(TestCase):
         self.assertNotContains(response, "Special offers")
         self.assertNotIn(self.product, response.context["deals"])
 
+    def test_homepage_displays_offer_banner_and_requested_section_order(self):
+        self.offer.image.save(
+            "summer-sale.jpg",
+            SimpleUploadedFile(
+                "summer-sale.jpg",
+                b"offer-banner",
+                content_type="image/jpeg",
+            ),
+            save=True,
+        )
+        customer = get_user_model().objects.create_user(
+            username="offer-banner-buyer",
+            password="test-password",
+        )
+        order = Order.objects.create(
+            customer=customer,
+            billing_full_name="Buyer",
+            billing_phone="03000000000",
+            billing_address="Street",
+            billing_city="Karachi",
+            shipping_full_name="Buyer",
+            shipping_phone="03000000000",
+            shipping_address="Street",
+            shipping_city="Karachi",
+            payment_method_code="cod",
+            status=Order.Status.DELIVERED,
+        )
+        OrderItem.objects.create(
+            order=order,
+            product=self.product,
+            sku=self.product.sku,
+            product_name=self.product.name,
+            quantity=1,
+            unit_price=self.product.selling_price,
+            total=self.product.selling_price,
+        )
+
+        response = self.client.get(reverse("store:home"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["featured_offer"], self.offer)
+        self.assertContains(response, self.offer.image.url)
+        self.assertContains(response, 'href="#special-offers"')
+        content = response.content.decode()
+        section_positions = [
+            content.index("Special offers"),
+            content.index("New arrivals"),
+            content.index("Best sellers"),
+            content.index("Shop this category"),
+        ]
+        self.assertEqual(section_positions, sorted(section_positions))
+
+        self.offer.show_on_website = False
+        self.offer.save(update_fields=["show_on_website"])
+        response = self.client.get(reverse("store:home"))
+        self.assertIsNone(response.context["featured_offer"])
+
     def test_category_images_and_related_products_show_on_home_and_category_pages(self):
         self.category.image.save(
             "electronics.jpg",

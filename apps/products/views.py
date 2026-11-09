@@ -391,6 +391,20 @@ class StoreHomeView(ListView):
             )
         )
         now = timezone.now()
+        context["featured_offer"] = (
+            ProductOffer.objects.filter(
+                is_active=True,
+                show_on_website=True,
+                start_date__lte=now,
+                end_date__gte=now,
+                image__isnull=False,
+                products__is_active=True,
+            )
+            .exclude(image="")
+            .order_by("-start_date", "-pk")
+            .distinct()
+            .first()
+        )
         offer_product_ids = list(
             ProductOffer.objects.filter(
                 is_active=True,

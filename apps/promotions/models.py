@@ -39,6 +39,9 @@ class ProductOffer(models.Model):
     products = models.ManyToManyField(
         "products.Product", blank=True, related_name="product_offers"
     )
+    image = models.ImageField(
+        "Offer banner image", upload_to="promotions/offers/", blank=True, null=True
+    )
     start_date = models.DateTimeField()
     end_date = models.DateTimeField()
     is_active = models.BooleanField("Active", default=True)

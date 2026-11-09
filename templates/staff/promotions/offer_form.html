@@ -4,7 +4,7 @@
 {% include "components/staff_header.html" with heading="Product offers" %}
 <h2 class="mt-5 text-xl font-semibold">{% if object %}Edit product offer{% else %}New product offer{% endif %}</h2>
 <p class="mt-1 text-sm text-slate-500">Choose a discount type and products. Percentage and fixed discounts show as sale prices while the offer is live.</p>
-<form method="post" class="mt-4 max-w-2xl space-y-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6" onsubmit="var b=this.querySelector('[data-submit]'); if(b){b.disabled=true; b.textContent='Saving…';}">
+<form method="post" enctype="multipart/form-data" class="mt-4 max-w-2xl space-y-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6" onsubmit="var b=this.querySelector('[data-submit]'); if(b){b.disabled=true; b.textContent='Saving…';}">
   {% csrf_token %}
   {{ form.non_field_errors }}
   <div class="space-y-1">
@@ -68,6 +68,15 @@
       <p class="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-500">No active products available yet. Add a product first, then come back.</p>
     {% endif %}
     {{ form.products.errors }}
+  </div>
+  <div class="space-y-1">
+    <label class="text-sm font-medium" for="{{ form.image.id_for_label }}">{{ form.image.label }}</label>
+    {{ form.image }}
+    {% if form.image.help_text %}<p class="mt-1 text-xs text-slate-500">{{ form.image.help_text }}</p>{% endif %}
+    {{ form.image.errors }}
+    {% if object.image %}
+      <img src="{{ object.image.url }}" alt="{{ object.name }} banner preview" class="mt-2 max-h-40 w-auto rounded-lg border border-slate-200 object-contain">
+    {% endif %}
   </div>
   <div class="grid gap-4 sm:grid-cols-2">
     <div class="space-y-1">

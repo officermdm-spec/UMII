@@ -73,6 +73,7 @@ class ProductOfferForm(TailwindFormMixin, forms.ModelForm):
             "buy_qty",
             "get_qty",
             "products",
+            "image",
             "start_date",
             "end_date",
             "is_active",
@@ -85,6 +86,7 @@ class ProductOfferForm(TailwindFormMixin, forms.ModelForm):
             "buy_qty": "Buy quantity",
             "get_qty": "Get quantity",
             "products": "Applicable products",
+            "image": "Offer banner image",
             "start_date": "Starts",
             "end_date": "Ends",
             "is_active": "Active",
@@ -107,6 +109,7 @@ class ProductOfferForm(TailwindFormMixin, forms.ModelForm):
         self.fields["value"].help_text = "Used for percentage and fixed amount offers."
         self.fields["buy_qty"].help_text = "Only for Buy X Get Y. Example: buy 2."
         self.fields["get_qty"].help_text = "Only for Buy X Get Y. Example: get 1 free."
+        self.fields["image"].help_text = "Optional image shown in the storefront banner while this offer is live."
         self.fields["value"].required = False
         self.fields["buy_qty"].required = False
         self.fields["get_qty"].required = False

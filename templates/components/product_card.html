@@ -2,7 +2,7 @@
 <article class="product-card group flex flex-col overflow-hidden rounded-3xl">
   <a href="{{ product.get_absolute_url }}" class="relative aspect-square overflow-hidden bg-gradient-to-br from-sky-50 to-violet-50">
     {% if product.cover_image %}
-      <img src="{{ product.cover_image.url }}" alt="{{ product.name }}" class="product-image h-full w-full object-cover" onerror="this.classList.add('hidden'); var f=this.nextElementSibling; if(f) f.classList.remove('hidden');">
+      <img src="{{ product.cover_image.url }}" alt="{{ product.name }}" class="product-image h-full w-full object-contain" onerror="this.classList.add('hidden'); var f=this.nextElementSibling; if(f) f.classList.remove('hidden');">
       <div class="hidden flex h-full flex-col items-center justify-center text-slate-400">
         <span class="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-2xl shadow-sm">◇</span>
         <span class="mt-2 text-xs">No image</span>
