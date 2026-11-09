@@ -123,7 +123,7 @@ class ProductOfferTests(TestCase):
             content.index("Special offers"),
             content.index("New arrivals"),
             content.index("Best sellers"),
-            content.index("Shop this category"),
+            content.index("Shop by category"),
         ]
         self.assertEqual(section_positions, sorted(section_positions))
 

@@ -365,7 +365,7 @@ class StoreHomeView(ListView):
                 "images",
                 "product_offers",
                 "variants__inventories",
-            )[:8]
+            )[:12]
         )
 
     def get_context_data(self, **kwargs):
@@ -390,6 +390,9 @@ class StoreHomeView(ListView):
                 to_attr="home_products",
             )
         )
+        context["shop_categories"] = Category.objects.filter(
+            is_active=True, parent__isnull=True
+        ).order_by("name")
         now = timezone.now()
         context["featured_offer"] = (
             ProductOffer.objects.filter(
@@ -433,7 +436,7 @@ class StoreHomeView(ListView):
             offer_products_by_id[product_id]
             for product_id in offer_product_ids
             if product_id in offer_products_by_id
-        ][:8]
+        ][:12]
 
         top_seller_rows = (
             OrderItem.objects.filter(
@@ -448,7 +451,7 @@ class StoreHomeView(ListView):
             )
             .values("catalog_product_id")
             .annotate(sold_quantity=Sum("quantity"))
-            .order_by("-sold_quantity", "catalog_product_id")[:8]
+            .order_by("-sold_quantity", "catalog_product_id")[:12]
         )
         top_seller_ids = [row["catalog_product_id"] for row in top_seller_rows]
         top_sellers = Product.objects.filter(

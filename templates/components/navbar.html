@@ -4,12 +4,12 @@
     <a href="{% url 'store:product_list' %}">Discover the collection <span aria-hidden="true">→</span></a>
   </div>
   <div class="glass-nav border-b backdrop-blur-xl">
-    <div class="mx-auto grid max-w-7xl grid-cols-[1fr_auto_1fr] items-center gap-3 px-4 py-3 sm:px-6 lg:px-8">
-      <button type="button" class="justify-self-start rounded-full p-2 text-brand-700 transition hover:bg-brand-50 md:hidden" data-toggle="#mobile-nav" aria-label="Open menu">
-        <svg viewBox="0 0 24 24" class="h-5 w-5 fill-none stroke-current" stroke-width="1.8"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    <div class="mx-auto grid max-w-7xl grid-cols-[auto_1fr_auto] items-center gap-3 px-4 py-3 sm:px-6 lg:px-8">
+      <button type="button" class="store-menu-trigger justify-self-start rounded-full p-2 text-brand-700 transition hover:bg-brand-50" data-menu-toggle aria-controls="mobile-nav" aria-expanded="false" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" class="h-7 w-7 fill-none stroke-current" stroke-width="1.8"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
       </button>
       <a href="{% url 'store:home' %}" class="col-start-2 row-start-1 justify-self-center">
-        {% include "components/brand_logo.html" with logo_class="h-10 w-auto max-w-[170px] object-contain sm:h-12 sm:max-w-[210px]" %}
+        {% include "components/brand_logo.html" with logo_class="h-12 w-auto max-w-[190px] object-contain sm:h-14 sm:max-w-[240px]" %}
       </a>
       <div class="col-start-3 row-start-1 flex items-center justify-self-end gap-2 sm:gap-4">
         <form action="{% url 'store:product_list' %}" method="get" class="hidden max-w-[230px] flex-1 lg:block">
@@ -21,10 +21,10 @@
           </div>
         </form>
         <a class="rounded-full p-2 text-brand-700 transition hover:bg-brand-50 lg:hidden" href="{% url 'store:product_list' %}" aria-label="Search">
-          <svg viewBox="0 0 24 24" class="h-5 w-5 fill-none stroke-current" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <svg viewBox="0 0 24 24" class="h-6 w-6 fill-none stroke-current" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
         </a>
         <a class="relative rounded-full p-2 text-brand-700 transition hover:bg-brand-50" href="{% url 'orders_cart:cart' %}" aria-label="Cart">
-          <svg viewBox="0 0 24 24" class="h-5 w-5 fill-none stroke-current" stroke-width="1.8"><path d="M3 5h2l2 11h10l2-8H6"/><path d="M9 20h.01M17 20h.01"/></svg>
+          <svg viewBox="0 0 24 24" class="h-6 w-6 fill-none stroke-current" stroke-width="1.8"><path d="M3 5h2l2 11h10l2-8H6"/><path d="M9 20h.01M17 20h.01"/></svg>
           {% if cart_count %}<span class="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand-600 px-1 text-[10px] text-white">{{ cart_count }}</span>{% endif %}
         </a>
         {% if user.is_authenticated %}
@@ -37,8 +37,8 @@
         {% endif %}
       </div>
     </div>
-    <nav class="store-category-nav hidden overflow-x-auto md:block" aria-label="Shop categories">
-      <div class="mx-auto flex max-w-7xl items-center justify-center gap-7 px-6">
+    <nav class="store-category-nav overflow-x-auto" aria-label="Shop categories">
+      <div class="mx-auto flex max-w-7xl items-center justify-start gap-6 px-4 sm:justify-center sm:gap-7 sm:px-6">
         <a href="{% url 'store:product_list' %}">Shop all</a>
         {% for cat in nav_categories %}
           <a href="{% url 'store:category' cat.slug %}">{{ cat.name }}</a>
@@ -47,22 +47,32 @@
       </div>
     </nav>
   </div>
-  <div id="mobile-nav" class="hidden border-t border-brand-100 bg-sage-50 px-4 py-4 shadow-lg md:hidden">
-    <form action="{% url 'store:product_list' %}" method="get" class="mb-3">
-      <input name="q" value="{{ request.GET.q }}" placeholder="Search products" class="modern-input w-full rounded-xl border border-brand-100 bg-white px-3 py-2.5 text-sm">
-    </form>
-    <div class="grid grid-cols-2 gap-2 text-sm text-brand-700">
-      <a class="rounded-lg px-2 py-2 hover:bg-brand-100" href="{% url 'store:product_list' %}">Shop all</a>
-      <a class="rounded-lg px-2 py-2 hover:bg-brand-100" href="{% url 'orders_customer:track' %}">Track an order</a>
-      {% for cat in nav_categories %}
-        <a class="rounded-lg px-2 py-2 hover:bg-brand-100" href="{% url 'store:category' cat.slug %}">{{ cat.name }}</a>
-      {% endfor %}
-      {% if user.is_authenticated %}
-        <a class="rounded-lg px-2 py-2 hover:bg-brand-100" href="{% url 'customers:dashboard' %}">My account</a>
-      {% else %}
-        <a class="rounded-lg px-2 py-2 hover:bg-brand-100" href="{% url 'customers:login' %}">Login</a>
-        <a class="rounded-lg px-2 py-2 text-brand-700 hover:bg-brand-100" href="{% url 'customers:register' %}">Create account</a>
-      {% endif %}
-    </div>
+  <div id="mobile-nav" class="store-menu hidden" aria-hidden="true">
+    <button type="button" class="store-menu-backdrop" data-menu-close aria-label="Close menu"></button>
+    <nav class="store-menu-drawer" aria-label="Main menu">
+      <div class="flex items-center justify-between border-b border-brand-100 pb-4">
+        <span class="text-lg font-semibold text-brand-800">Browse the store</span>
+        <button type="button" class="rounded-full p-2 text-brand-700 hover:bg-brand-100" data-menu-close aria-label="Close menu">
+          <svg viewBox="0 0 24 24" class="h-6 w-6 fill-none stroke-current" stroke-width="2"><path d="m6 6 12 12M18 6 6 18"/></svg>
+        </button>
+      </div>
+      <form action="{% url 'store:product_list' %}" method="get" class="my-4">
+        <label class="sr-only" for="mobile-search">Search products</label>
+        <input id="mobile-search" name="q" value="{{ request.GET.q }}" placeholder="Search products" class="modern-input w-full rounded-xl border border-brand-100 bg-white px-3 py-2.5 text-sm">
+      </form>
+      <div class="store-menu-links">
+        <a href="{% url 'store:product_list' %}">Shop all <span aria-hidden="true">→</span></a>
+        {% for cat in nav_categories %}
+          <a href="{% url 'store:category' cat.slug %}">{{ cat.name }} <span aria-hidden="true">→</span></a>
+        {% endfor %}
+        <a href="{% url 'orders_customer:track' %}">Track an order <span aria-hidden="true">→</span></a>
+        {% if user.is_authenticated %}
+          <a href="{% url 'customers:dashboard' %}">My account <span aria-hidden="true">→</span></a>
+        {% else %}
+          <a href="{% url 'customers:login' %}">Login <span aria-hidden="true">→</span></a>
+          <a href="{% url 'customers:register' %}">Create account <span aria-hidden="true">→</span></a>
+        {% endif %}
+      </div>
+    </nav>
   </div>
 </header>
