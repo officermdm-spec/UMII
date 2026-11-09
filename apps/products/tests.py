@@ -550,6 +550,17 @@ class BrandAssetTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "brand/logo.png")
         self.assertContains(response, "brand/favicon")
+        self.assertContains(
+            response,
+            '<input id="store-menu-toggle" class="store-menu-checkbox" type="checkbox"',
+            html=False,
+        )
+        self.assertContains(
+            response,
+            'for="store-menu-toggle" class="store-menu-trigger',
+            html=False,
+        )
+        self.assertContains(response, 'id="mobile-nav" class="store-menu"', html=False)
 
 
 class ProductImageStorageTests(SimpleTestCase):
