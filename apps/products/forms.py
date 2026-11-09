@@ -9,6 +9,11 @@ from config.forms import TailwindFormMixin
 
 
 class ProductForm(TailwindFormMixin, forms.ModelForm):
+    sizes_confirmed = forms.BooleanField(
+        required=True,
+        label="I have added at least one size",
+    )
+
     class Meta:
         model = Product
         fields = [
@@ -37,6 +42,12 @@ class ProductForm(TailwindFormMixin, forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        if not self.instance.pk:
+            self.fields["sizes_confirmed"].help_text = (
+                "Products cannot be created without at least one size."
+            )
+        else:
+            self.fields.pop("sizes_confirmed")
         if not self.instance.variant_parent_id:
             self.fields.pop("size")
         else:
@@ -144,6 +155,8 @@ class BaseProductVariantFormSet(forms.BaseInlineFormSet):
                 continue
             size = (form.cleaned_data.get("size") or "").strip().casefold()
             if not size:
+                if not form.instance.pk and not form.has_changed():
+                    continue
                 raise forms.ValidationError(
                     "Enter a size for every variant, or remove the empty option."
                 )
@@ -152,6 +165,10 @@ class BaseProductVariantFormSet(forms.BaseInlineFormSet):
                     "Each size can only be added once."
                 )
             seen.add(size)
+        if not seen and (not parent.pk or parent.variants.exists()):
+            raise forms.ValidationError(
+                "Add at least one size before saving this product."
+            )
 
 
 ProductVariantFormSet = inlineformset_factory(
@@ -160,7 +177,7 @@ ProductVariantFormSet = inlineformset_factory(
     fk_name="variant_parent",
     form=ProductVariantForm,
     formset=BaseProductVariantFormSet,
-    extra=0,
+    extra=len(ProductVariantForm.SIZE_CHOICES),
     can_delete=True,
 )
 

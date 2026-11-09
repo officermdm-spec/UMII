@@ -4,17 +4,27 @@
 <h1 class="text-2xl font-semibold">{% if object %}Edit product{% else %}Add product{% endif %}</h1>
 <form method="post" enctype="multipart/form-data" class="mt-4 max-w-3xl space-y-4 rounded-2xl border bg-white p-5">
   {% csrf_token %}
-  {% for field in form %}<div><label class="text-sm font-medium">{{ field.label }}</label>{{ field }}{{ field.errors }}</div>{% endfor %}
+  {% for field in form %}{% if field.name != "sizes_confirmed" %}<div><label class="text-sm font-medium">{{ field.label }}</label>{{ field }}{{ field.errors }}</div>{% endif %}{% endfor %}
 
   {% if variant_formset %}
   <section class="space-y-4 rounded-xl border border-olive-200 bg-olive-50 p-4">
     <div>
       <h2 class="font-semibold">Size variants</h2>
       <p class="mt-1 text-sm text-slate-600">
-        Add each sellable size with its own SKU and stock. Choose XS, S, M, L, XL, XXL, or XXXL. Color, price, product details, and photos are shared.
+        Select each sellable size and optionally enter its SKU. At least one size is required. Choose XS, S, M, L, XL, XXL, or XXXL. Color, price, product details, and photos are shared.
         Stock for each size is managed separately in Inventory.
       </p>
     </div>
+    {% if "sizes_confirmed" in form.fields %}
+      <div>
+        <label class="flex items-center gap-2 text-sm font-medium">
+          {{ form.sizes_confirmed }}
+          {{ form.sizes_confirmed.label }}
+        </label>
+        {{ form.sizes_confirmed.help_text }}
+        {{ form.sizes_confirmed.errors }}
+      </div>
+    {% endif %}
     {{ variant_formset.management_form }}
     {{ variant_formset.non_form_errors }}
     <div id="variant-forms" class="space-y-3">
@@ -23,7 +33,12 @@
           {% for hidden in variant_form.hidden_fields %}{{ hidden }}{% endfor %}
           {% for field in variant_form.visible_fields %}
             {% if field.name == "DELETE" %}
-              <span class="hidden">{{ field }}</span>
+              {% if variant_form.instance.pk %}
+                <label class="flex items-center gap-2 text-sm text-red-700">
+                  {{ field }}
+                  Remove this size
+                </label>
+              {% endif %}
             {% else %}
             <div>
               <label class="text-sm font-medium" for="{{ field.id_for_label }}">{{ field.label }}</label>
@@ -32,27 +47,9 @@
             </div>
             {% endif %}
           {% endfor %}
-          <button type="button" data-remove-variant class="justify-self-start rounded-lg border border-red-300 px-3 py-2 text-sm font-medium text-red-700">Remove option</button>
         </div>
       {% endfor %}
     </div>
-    <template id="empty-variant-form">
-      <div class="grid gap-3 rounded-lg border bg-white p-3 sm:grid-cols-2" data-variant-row>
-        {% for hidden in variant_formset.empty_form.hidden_fields %}{{ hidden }}{% endfor %}
-        {% for field in variant_formset.empty_form.visible_fields %}
-          {% if field.name == "DELETE" %}
-            <span class="hidden">{{ field }}</span>
-          {% else %}
-          <div>
-            <label class="text-sm font-medium" for="{{ field.id_for_label }}">{{ field.label }}</label>
-            {{ field }}
-          </div>
-          {% endif %}
-        {% endfor %}
-        <button type="button" data-remove-variant class="justify-self-start rounded-lg border border-red-300 px-3 py-2 text-sm font-medium text-red-700">Remove option</button>
-      </div>
-    </template>
-    <button type="button" id="add-variant" class="rounded-lg border border-olive-600 px-3 py-2 text-sm font-medium text-olive-700">Add another option</button>
   </section>
   {% elif object.variant_parent %}
     <p class="rounded-xl bg-sage-100 p-4 text-sm text-slate-600">
@@ -84,7 +81,7 @@
       <input type="file" name="main_image" accept="image/*" class="mt-1 block w-full text-sm">
       {% if object and object.image %}
         <div class="mt-2 flex items-center gap-3">
-          <img src="{{ object.image.url }}" alt="" class="h-20 w-20 rounded-lg border object-cover" onerror="this.style.opacity='0.3'">
+          <img src="{{ object.image.url }}" alt="" class="h-20 w-20 rounded-lg border object-cover">
           <label class="flex items-center gap-2 text-sm text-red-600">
             <input type="checkbox" name="clear_main_image" value="1"> Remove main image
           </label>
@@ -102,7 +99,7 @@
         <div class="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-3">
           {% for img in gallery %}
             <div class="rounded-xl border bg-white p-2">
-              <img src="{{ img.image.url }}" alt="{{ img.alt_text }}" class="h-28 w-full rounded-lg object-cover" onerror="this.style.opacity='0.3'">
+              <img src="{{ img.image.url }}" alt="{{ img.alt_text }}" class="h-28 w-full rounded-lg object-cover">
               <div class="mt-2 space-y-1 text-xs">
                 <label class="flex items-center gap-2">
                   <input type="radio" name="set_main_image" value="{{ img.pk }}"> Set as main
@@ -120,30 +117,4 @@
 
   <button class="rounded-lg bg-brand-600 px-4 py-2 text-white">Save product</button>
 </form>
-{% if variant_formset %}
-<script>
-  (function () {
-    const addButton = document.getElementById("add-variant");
-    const rows = document.getElementById("variant-forms");
-    const template = document.getElementById("empty-variant-form");
-    const totalForms = document.getElementById("id_variants-TOTAL_FORMS");
-    if (!addButton || !rows || !template || !totalForms) return;
-    addButton.addEventListener("click", function () {
-      const index = Number(totalForms.value);
-      const html = template.innerHTML.replace(/__prefix__/g, String(index));
-      rows.insertAdjacentHTML("beforeend", html);
-      totalForms.value = String(index + 1);
-    });
-    rows.addEventListener("click", function (event) {
-      const button = event.target.closest("[data-remove-variant]");
-      if (!button) return;
-      const row = button.closest("[data-variant-row]");
-      const deleteField = row && row.querySelector('input[name$="-DELETE"]');
-      if (!row || !deleteField) return;
-      deleteField.checked = true;
-      row.style.display = "none";
-    });
-  })();
-</script>
-{% endif %}
 {% endblock %}

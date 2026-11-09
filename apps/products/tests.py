@@ -59,39 +59,43 @@ class ProductVariantTests(TestCase):
         get_response = self.client.get(reverse("products:create"))
         prefix = get_response.context["variant_formset"].prefix
         self.assertNotIn("size", get_response.context["form"].fields)
+        self.assertIn("sizes_confirmed", get_response.context["form"].fields)
         self.assertIn("color", get_response.context["form"].fields)
-        self.assertIn("size", get_response.context["variant_formset"].empty_form.fields)
+        self.assertIn("size", get_response.context["variant_formset"].forms[0].fields)
         self.assertNotIn("color", get_response.context["variant_formset"].empty_form.fields)
         self.assertNotContains(get_response, 'name="size"')
         self.assertContains(get_response, 'name="color"')
-        self.assertContains(get_response, f'name="{prefix}-__prefix__-size"')
-        self.assertNotContains(get_response, f'name="{prefix}-__prefix__-color"')
-        self.assertContains(get_response, "Add another option")
-        self.assertContains(get_response, "Remove option")
-        response = self.client.post(
-            reverse("products:create"),
-            {
-                "name": "Everyday Tee",
-                "selling_price": "1000.00",
-                "purchase_price": "500.00",
-                "category": self.category.pk,
-                "vendor": self.vendor.pk,
-                "brand": "",
-                "size": "",
-                "color": "Navy",
-                "unit": "pcs",
-                "discount_percent": "0",
-                "min_stock_level": "5",
-                "description": "Cotton everyday tee",
-                f"{prefix}-TOTAL_FORMS": "1",
-                f"{prefix}-INITIAL_FORMS": "0",
-                f"{prefix}-MIN_NUM_FORMS": "0",
-                f"{prefix}-MAX_NUM_FORMS": "1000",
-                f"{prefix}-0-sku": "",
-                f"{prefix}-0-size": "S",
-                f"{prefix}-0-is_active": "on",
-            },
-        )
+        self.assertContains(get_response, f'name="{prefix}-0-size"')
+        self.assertContains(get_response, "I have added at least one size")
+        self.assertNotContains(get_response, 'id="add-variant"')
+        self.assertNotContains(get_response, "Add another option")
+        post_data = {
+            "name": "Everyday Tee",
+            "selling_price": "1000.00",
+            "purchase_price": "500.00",
+            "category": self.category.pk,
+            "vendor": self.vendor.pk,
+            "brand": "",
+            "size": "",
+            "sizes_confirmed": "on",
+            "color": "Navy",
+            "unit": "pcs",
+            "discount_percent": "0",
+            "min_stock_level": "5",
+            "description": "Cotton everyday tee",
+            f"{prefix}-TOTAL_FORMS": "7",
+            f"{prefix}-INITIAL_FORMS": "0",
+            f"{prefix}-MIN_NUM_FORMS": "0",
+            f"{prefix}-MAX_NUM_FORMS": "1000",
+            f"{prefix}-0-sku": "",
+            f"{prefix}-0-size": "S",
+            f"{prefix}-0-is_active": "on",
+        }
+        for index in range(1, 7):
+            post_data[f"{prefix}-{index}-sku"] = ""
+            post_data[f"{prefix}-{index}-size"] = ""
+            post_data[f"{prefix}-{index}-is_active"] = "on"
+        response = self.client.post(reverse("products:create"), post_data)
         if response.status_code != 302:
             self.fail(
                 f"Product errors: {response.context['form'].errors}; "
@@ -129,6 +133,7 @@ class ProductVariantTests(TestCase):
                 "category": self.category.pk,
                 "vendor": self.vendor.pk,
                 "brand": "",
+                "sizes_confirmed": "on",
                 "color": "Navy",
                 "unit": "pcs",
                 "discount_percent": "0",
@@ -138,7 +143,7 @@ class ProductVariantTests(TestCase):
                 "variants-INITIAL_FORMS": "0",
                 "variants-MIN_NUM_FORMS": "0",
                 "variants-MAX_NUM_FORMS": "1000",
-                "variants-0-sku": "",
+                "variants-0-sku": "BLANK-SIZE",
                 "variants-0-size": "",
                 "variants-0-is_active": "on",
                 "variants-0-DELETE": "",
@@ -152,7 +157,7 @@ class ProductVariantTests(TestCase):
             response.context["variant_formset"].non_form_errors(),
         )
 
-    def test_empty_variant_can_be_removed_before_saving_parent(self):
+    def test_product_cannot_be_created_after_removing_its_only_size(self):
         self.client.force_login(self.staff)
         response = self.client.post(
             reverse("products:create"),
@@ -163,6 +168,7 @@ class ProductVariantTests(TestCase):
                 "category": self.category.pk,
                 "vendor": self.vendor.pk,
                 "brand": "",
+                "sizes_confirmed": "on",
                 "color": "Navy",
                 "unit": "pcs",
                 "discount_percent": "0",
@@ -179,9 +185,42 @@ class ProductVariantTests(TestCase):
             },
         )
 
-        self.assertEqual(response.status_code, 302)
-        parent = Product.objects.get(name="Removed Option Tee", variant_parent__isnull=True)
-        self.assertFalse(parent.variants.exists())
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(Product.objects.filter(name="Removed Option Tee").exists())
+        self.assertIn(
+            "Add at least one size before saving this product.",
+            response.context["variant_formset"].non_form_errors(),
+        )
+
+    def test_product_creation_requires_size_confirmation_checkbox(self):
+        self.client.force_login(self.staff)
+        response = self.client.post(
+            reverse("products:create"),
+            {
+                "name": "Unconfirmed Size Tee",
+                "selling_price": "1000.00",
+                "purchase_price": "500.00",
+                "category": self.category.pk,
+                "vendor": self.vendor.pk,
+                "brand": "",
+                "color": "Navy",
+                "unit": "pcs",
+                "discount_percent": "0",
+                "min_stock_level": "5",
+                "description": "",
+                "variants-TOTAL_FORMS": "1",
+                "variants-INITIAL_FORMS": "0",
+                "variants-MIN_NUM_FORMS": "0",
+                "variants-MAX_NUM_FORMS": "1000",
+                "variants-0-sku": "",
+                "variants-0-size": "S",
+                "variants-0-is_active": "on",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(Product.objects.filter(name="Unconfirmed Size Tee").exists())
+        self.assertIn("sizes_confirmed", response.context["form"].errors)
 
     def test_existing_variant_cannot_be_updated_with_blank_size(self):
         parent = Product.objects.create(
@@ -478,16 +517,27 @@ class InventoryGuardTests(TestCase):
                 "category": self.product.category_id,
                 "vendor": self.product.vendor_id,
                 "brand": "",
+                "sizes_confirmed": "on",
                 "size": "",
                 "color": "",
                 "unit": "pcs",
                 "discount_percent": "0",
                 "min_stock_level": "5",
                 "description": "",
+                "variants-TOTAL_FORMS": "1",
+                "variants-INITIAL_FORMS": "0",
+                "variants-MIN_NUM_FORMS": "0",
+                "variants-MAX_NUM_FORMS": "1000",
+                "variants-0-sku": "",
+                "variants-0-size": "M",
+                "variants-0-is_active": "on",
             },
         )
         self.assertEqual(response.status_code, 302)
-        created = Product.objects.get(name="Only Lahore Item")
+        created = Product.objects.get(
+            name="Only Lahore Item",
+            variant_parent__isnull=True,
+        )
         self.assertFalse(Inventory.objects.filter(product=created).exists())
 
 
