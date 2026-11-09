@@ -142,13 +142,14 @@ body {
 .store-menu-drawer {
   position: relative;
   z-index: 1;
-  width: min(22rem, 88vw);
-  height: 100%;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
   overflow-y: auto;
-  padding: 1.25rem;
+  padding: max(1.25rem, env(safe-area-inset-top)) 1.25rem
+    max(1.25rem, env(safe-area-inset-bottom));
   color: var(--clay);
   background: var(--sage-soft);
-  box-shadow: 1rem 0 3rem -1.5rem rgba(36, 27, 26, 0.45);
   animation: store-menu-enter 180ms ease-out;
 }
 .store-menu-links { display: grid; }
@@ -158,9 +159,9 @@ body {
   justify-content: space-between;
   gap: 1rem;
   border-bottom: 1px solid rgba(92, 64, 52, 0.12);
-  padding: 0.85rem 0.2rem;
+  padding: 1rem 0.2rem;
   color: var(--clay);
-  font-size: 0.9rem;
+  font-size: 1rem;
   font-weight: 500;
 }
 .store-menu-links a:hover { color: var(--olive); }
