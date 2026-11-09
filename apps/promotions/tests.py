@@ -161,6 +161,61 @@ class ProductOfferTests(TestCase):
         self.assertEqual(category_response.status_code, 200)
         self.assertContains(category_response, self.category.image.url)
 
+    def test_homepage_hides_empty_categories_and_shows_six_products_after_category_image(self):
+        empty_category = Category.objects.create(
+            name="Empty category",
+            slug="empty-category",
+        )
+        products = [self.product]
+        for index in range(2, 7):
+            products.append(
+                Product.objects.create(
+                    name=f"Demo phone {index}",
+                    sku=f"ELE-10{index}",
+                    selling_price=Decimal("1000.00"),
+                    purchase_price=Decimal("400.00"),
+                    category=self.category,
+                    vendor=self.vendor,
+                )
+            )
+        self.category.image.save(
+            "electronics-banner.jpg",
+            SimpleUploadedFile(
+                "electronics-banner.jpg",
+                b"category-banner",
+                content_type="image/jpeg",
+            ),
+            save=True,
+        )
+
+        response = self.client.get(reverse("store:home"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            [category.pk for category in response.context["category_sections"]],
+            [self.category.pk],
+        )
+        self.assertEqual(
+            [category.pk for category in response.context["shop_categories"]],
+            [self.category.pk],
+        )
+        category_section = next(
+            section
+            for section in response.context["category_sections"]
+            if section.pk == self.category.pk
+        )
+        self.assertEqual(len(category_section.home_products), 6)
+        self.assertNotContains(response, empty_category.name)
+
+        content = response.content.decode()
+        category_section_start = content.index('class="category-showcase')
+        category_section_end = content.index("</section>", category_section_start)
+        category_section_html = content[category_section_start:category_section_end]
+        self.assertLess(
+            category_section_html.index(self.category.image.url),
+            category_section_html.index(category_section.home_products[0].name),
+        )
+
     def test_homepage_ranks_best_sellers_by_fulfilled_quantity(self):
         User = get_user_model()
         customer = User.objects.create_user(

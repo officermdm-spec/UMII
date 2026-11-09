@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.db.models import Q
 
 from apps.accounts.permissions import can_write, is_read_only_staff, nav_modules_for_user
 from apps.categories.models import Category
@@ -8,7 +9,19 @@ from apps.orders.cart import cart_summary
 def storefront(request):
     whatsapp = "".join(ch for ch in str(settings.WHATSAPP_NUMBER) if ch.isdigit())
     summary = cart_summary(request)
-    categories = Category.objects.filter(is_active=True, parent__isnull=True).order_by("name")
+    categories = (
+        Category.objects.filter(is_active=True, parent__isnull=True)
+        .filter(
+            Q(products__is_active=True, products__variant_parent__isnull=True)
+            | Q(
+                children__is_active=True,
+                children__products__is_active=True,
+                children__products__variant_parent__isnull=True,
+            )
+        )
+        .distinct()
+        .order_by("name")
+    )
     return {
         "whatsapp_number": whatsapp,
         "support_email": settings.SUPPORT_EMAIL,

@@ -379,11 +379,13 @@ class StoreHomeView(ListView):
                 "product_offers",
                 "variants__inventories",
             )
-            .order_by("-created_at")[:4]
+            .order_by("-created_at")[:6]
         )
         context["category_sections"] = Category.objects.filter(
-            is_active=True
-        ).prefetch_related(
+            is_active=True,
+            products__is_active=True,
+            products__variant_parent__isnull=True,
+        ).distinct().prefetch_related(
             Prefetch(
                 "products",
                 queryset=category_products,
@@ -391,8 +393,11 @@ class StoreHomeView(ListView):
             )
         )
         context["shop_categories"] = Category.objects.filter(
-            is_active=True, parent__isnull=True
-        ).order_by("name")
+            is_active=True,
+            parent__isnull=True,
+            products__is_active=True,
+            products__variant_parent__isnull=True,
+        ).distinct().order_by("name")
         now = timezone.now()
         context["featured_offer"] = (
             ProductOffer.objects.filter(
@@ -519,7 +524,18 @@ class StoreProductListView(ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["categories"] = Category.objects.filter(is_active=True)
+        context["categories"] = (
+            Category.objects.filter(is_active=True)
+            .filter(
+                Q(products__is_active=True, products__variant_parent__isnull=True)
+                | Q(
+                    children__is_active=True,
+                    children__products__is_active=True,
+                    children__products__variant_parent__isnull=True,
+                )
+            )
+            .distinct()
+        )
         context["current_category"] = self.request.GET.get("category", "")
         context["q"] = self.request.GET.get("q", "")
         context["sort"] = self.request.GET.get("sort", "newest")
