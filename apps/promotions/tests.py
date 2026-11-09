@@ -1,10 +1,11 @@
 from datetime import timedelta
 from decimal import Decimal
 
+from django.contrib.auth import get_user_model
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
-from django.contrib.auth import get_user_model
 
 from apps.accounts.permissions import MODULES
 from apps.categories.models import Category
@@ -73,6 +74,35 @@ class ProductOfferTests(TestCase):
         response = self.client.get(reverse("store:home"))
         self.assertNotContains(response, "Special offers")
         self.assertNotIn(self.product, response.context["deals"])
+
+    def test_category_images_and_related_products_show_on_home_and_category_pages(self):
+        self.category.image.save(
+            "electronics.jpg",
+            SimpleUploadedFile(
+                "electronics.jpg",
+                b"category-image",
+                content_type="image/jpeg",
+            ),
+            save=True,
+        )
+
+        home_response = self.client.get(reverse("store:home"))
+
+        self.assertEqual(home_response.status_code, 200)
+        category_section = next(
+            section
+            for section in home_response.context["category_sections"]
+            if section.pk == self.category.pk
+        )
+        self.assertEqual(list(category_section.home_products), [self.product])
+        self.assertContains(home_response, self.category.image.url)
+
+        category_response = self.client.get(
+            reverse("store:category", args=[self.category.slug])
+        )
+
+        self.assertEqual(category_response.status_code, 200)
+        self.assertContains(category_response, self.category.image.url)
 
     def test_homepage_ranks_best_sellers_by_fulfilled_quantity(self):
         User = get_user_model()

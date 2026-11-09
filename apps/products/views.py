@@ -1,6 +1,6 @@
 from django.contrib import messages
 from django.db import transaction
-from django.db.models import Avg, Q, Sum
+from django.db.models import Avg, Prefetch, Q, Sum
 from django.db.models.functions import Coalesce
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect
@@ -370,7 +370,26 @@ class StoreHomeView(ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["categories"] = Category.objects.filter(is_active=True, parent__isnull=True)
+        category_products = (
+            Product.objects.filter(is_active=True, variant_parent__isnull=True)
+            .select_related("category")
+            .prefetch_related(
+                "inventories",
+                "images",
+                "product_offers",
+                "variants__inventories",
+            )
+            .order_by("-created_at")[:4]
+        )
+        context["category_sections"] = Category.objects.filter(
+            is_active=True
+        ).prefetch_related(
+            Prefetch(
+                "products",
+                queryset=category_products,
+                to_attr="home_products",
+            )
+        )
         now = timezone.now()
         offer_product_ids = list(
             ProductOffer.objects.filter(

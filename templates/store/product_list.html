@@ -8,6 +8,16 @@
     <p class="mt-2 text-sm text-slate-500">Search, filter, and choose with confidence.</p>
   </div>
 </div>
+{% if category_obj and category_obj.image %}
+  <div class="mb-7 overflow-hidden rounded-3xl bg-gradient-to-r from-sky-50 to-violet-50 sm:flex sm:items-center">
+    <img src="{{ category_obj.image.url }}" alt="{{ category_obj.name }}" class="h-48 w-full object-cover sm:h-56 sm:w-2/5">
+    <div class="p-6 sm:p-8">
+      <p class="text-xs font-semibold uppercase tracking-[0.18em] text-brand-600">Explore category</p>
+      <h2 class="mt-2 text-2xl font-bold tracking-tight">{{ category_obj.name }}</h2>
+      {% if category_obj.description %}<p class="mt-2 text-sm leading-6 text-slate-600">{{ category_obj.description }}</p>{% endif %}
+    </div>
+  </div>
+{% endif %}
 <div class="grid gap-6 lg:grid-cols-[240px_1fr]">
   <aside class="surface-card h-fit rounded-2xl p-5 lg:sticky lg:top-24">
     <div class="mb-4 flex items-center justify-between">

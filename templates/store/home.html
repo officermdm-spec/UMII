@@ -1,7 +1,86 @@
 {% extends "store/base.html" %}
 {% block store_title %}Home{% endblock %}
 {% block content %}
-<section class="hero-shell overflow-hidden rounded-[2rem] px-6 py-10 text-white sm:px-10 sm:py-14 lg:px-14">
+{% if deals %}
+<section class="rounded-3xl bg-gradient-to-r from-rose-50 via-amber-50 to-violet-50 p-5 sm:p-7">
+  <div class="flex items-center justify-between">
+    <div>
+      <p class="text-xs font-semibold uppercase tracking-[0.18em] text-rose-600">Limited-time deals</p>
+      <h2 class="mt-1 text-2xl font-bold tracking-tight">Special offers</h2>
+    </div>
+    <a href="{% url 'store:product_list' %}" class="btn-secondary px-4 py-2 text-sm font-semibold">Shop all</a>
+  </div>
+  <div class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+    {% for product in deals %}
+      {% include "components/product_card.html" %}
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{% if top_sellers %}
+<section class="mt-12">
+  <div>
+    <p class="text-xs font-semibold uppercase tracking-[0.18em] text-brand-600">Customer favorites</p>
+    <h2 class="mt-1 text-2xl font-bold tracking-tight">Best sellers</h2>
+  </div>
+  <div class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+    {% for product in top_sellers %}
+      {% include "components/product_card.html" %}
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{% for cat in category_sections %}
+<section class="mt-12">
+  <div class="flex flex-wrap items-center justify-between gap-4">
+    <a href="{% url 'store:category' cat.slug %}" class="flex items-center gap-4">
+      {% if cat.image %}
+        <img src="{{ cat.image.url }}" alt="{{ cat.name }}" class="h-16 w-16 rounded-2xl object-cover">
+      {% else %}
+        <span class="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-100 to-violet-100 text-xl font-bold text-brand-700">{{ cat.name|first }}</span>
+      {% endif %}
+      <span>
+        <span class="block text-xs font-semibold uppercase tracking-[0.18em] text-brand-600">Shop by category</span>
+        <span class="mt-1 block text-2xl font-bold tracking-tight text-slate-900">{{ cat.name }}</span>
+      </span>
+    </a>
+    <a href="{% url 'store:category' cat.slug %}" class="btn-secondary px-4 py-2 text-sm font-semibold">View all</a>
+  </div>
+  <div class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+    {% for product in cat.home_products %}
+      {% include "components/product_card.html" %}
+    {% empty %}
+      <p class="text-sm text-slate-500">No products in this category yet.</p>
+    {% endfor %}
+  </div>
+</section>
+{% empty %}
+<section class="mt-12">
+  <h2 class="text-2xl font-bold tracking-tight">Shop by category</h2>
+  <p class="mt-3 text-slate-500">Categories will appear after they are added.</p>
+</section>
+{% endfor %}
+
+<section class="mt-14">
+  <div class="flex items-center justify-between">
+    <div>
+      <p class="text-xs font-semibold uppercase tracking-[0.18em] text-brand-600">Picked for you</p>
+      <h2 class="mt-1 text-2xl font-bold tracking-tight">Featured products</h2>
+    </div>
+    <a href="{% url 'store:product_list' %}" class="btn-secondary px-4 py-2 text-sm font-semibold">View all</a>
+  </div>
+  <div class="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+    {% for product in featured_products %}
+      {% include "components/product_card.html" %}
+    {% empty %}
+      <p class="text-slate-500">No products yet.</p>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="hero-shell mt-14 overflow-hidden rounded-[2rem] px-6 py-10 text-white sm:px-10 sm:py-14 lg:px-14">
   <div class="grid items-center gap-10 lg:grid-cols-[1.35fr_.65fr]">
     <div>
       <p class="inline-flex rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-sky-100 backdrop-blur">A better way to shop</p>
@@ -49,71 +128,5 @@
   <div class="flex items-center gap-3"><span class="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-100 text-sky-700">✓</span><span><strong class="block text-slate-800">Easy checkout</strong><small class="text-slate-500">Simple and transparent</small></span></div>
   <div class="flex items-center gap-3"><span class="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-100 text-violet-700">↗</span><span><strong class="block text-slate-800">Order updates</strong><small class="text-slate-500">Track every step</small></span></div>
   <div class="flex items-center gap-3"><span class="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-100 text-indigo-700">♡</span><span><strong class="block text-slate-800">Friendly support</strong><small class="text-slate-500">We're here to help</small></span></div>
-</section>
-
-{% if deals %}
-<section class="mt-10 rounded-3xl bg-gradient-to-r from-rose-50 via-amber-50 to-violet-50 p-5 sm:p-7">
-  <div class="flex items-center justify-between">
-    <div>
-      <p class="text-xs font-semibold uppercase tracking-[0.18em] text-rose-600">Limited-time deals</p>
-      <h2 class="mt-1 text-2xl font-bold tracking-tight">Special offers</h2>
-    </div>
-    <a href="{% url 'store:product_list' %}" class="btn-secondary px-4 py-2 text-sm font-semibold">Shop all</a>
-  </div>
-  <div class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-    {% for product in deals %}
-      {% include "components/product_card.html" %}
-    {% endfor %}
-  </div>
-</section>
-{% endif %}
-
-{% if top_sellers %}
-<section class="mt-12">
-  <div>
-    <p class="text-xs font-semibold uppercase tracking-[0.18em] text-brand-600">Customer favorites</p>
-    <h2 class="mt-1 text-2xl font-bold tracking-tight">Best sellers</h2>
-  </div>
-  <div class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-    {% for product in top_sellers %}
-      {% include "components/product_card.html" %}
-    {% endfor %}
-  </div>
-</section>
-{% endif %}
-
-<section class="mt-12">
-  <div>
-    <p class="text-xs font-semibold uppercase tracking-[0.18em] text-brand-600">Browse your way</p>
-    <h2 class="mt-1 text-2xl font-bold tracking-tight">Shop by category</h2>
-  </div>
-  <div class="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-    {% for cat in categories %}
-      <a href="{% url 'store:category' cat.slug %}" class="category-card rounded-2xl p-5">
-        <span class="relative z-10 flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-sky-100 to-violet-100 font-bold text-brand-700">{{ cat.name|first }}</span>
-        <span class="relative z-10 mt-4 block font-semibold text-slate-800">{{ cat.name }}</span>
-        <span class="relative z-10 mt-1 block text-xs text-slate-500">Explore products →</span>
-      </a>
-    {% empty %}
-      <p class="text-slate-500">Categories will appear after seeding demo data.</p>
-    {% endfor %}
-  </div>
-</section>
-
-<section class="mt-14">
-  <div class="flex items-center justify-between">
-    <div>
-      <p class="text-xs font-semibold uppercase tracking-[0.18em] text-brand-600">Picked for you</p>
-      <h2 class="mt-1 text-2xl font-bold tracking-tight">Featured products</h2>
-    </div>
-    <a href="{% url 'store:product_list' %}" class="btn-secondary px-4 py-2 text-sm font-semibold">View all</a>
-  </div>
-  <div class="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-    {% for product in featured_products %}
-      {% include "components/product_card.html" %}
-    {% empty %}
-      <p class="text-slate-500">No products yet.</p>
-    {% endfor %}
-  </div>
 </section>
 {% endblock %}
