@@ -481,6 +481,14 @@ input[type="checkbox"] { margin-right: 0.35rem; }
 }
 .product-card-media { isolation: isolate; }
 .product-card-media > a { background: #f4f1e8; }
+.product-card-media img,
+.cart-item > a img,
+.product-detail-image > img {
+  display: block;
+  object-fit: contain;
+  object-position: center;
+}
+.cart-item-name { overflow-wrap: anywhere; }
 .product-card-quick-add-form { position: absolute; right: 0.6rem; bottom: 0.6rem; z-index: 2; margin: 0 !important; }
 .product-card-quick-add {
   display: grid;

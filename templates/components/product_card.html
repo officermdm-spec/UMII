@@ -3,7 +3,7 @@
   <div class="product-card-media relative">
   <a href="{{ product.get_absolute_url }}" class="relative block aspect-square overflow-hidden bg-gradient-to-br from-sky-50 to-violet-50">
     {% if product.cover_image %}
-      <img src="{{ product.cover_image.url }}" alt="{{ product.name }}" class="product-image h-full w-full object-contain" onerror="this.classList.add('hidden'); var f=this.nextElementSibling; if(f) f.classList.remove('hidden');">
+      <img src="{{ product.cover_image.url }}" alt="{{ product.name }}" class="product-image h-full w-full object-contain" loading="lazy" decoding="async" onerror="this.classList.add('hidden'); var f=this.nextElementSibling; if(f) f.classList.remove('hidden');">
       <div class="hidden flex h-full flex-col items-center justify-center text-slate-400">
         <span class="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-2xl shadow-sm">◇</span>
         <span class="mt-2 text-xs">No image</span>
@@ -14,33 +14,10 @@
         <span class="mt-2 text-xs">No image</span>
       </div>
     {% endif %}
-    {% if product.has_discount or product.offer_badge %}
-      <span class="absolute left-2 top-2 rounded-full bg-rose-600 px-2.5 py-1 text-[11px] font-bold text-white shadow-sm sm:left-3 sm:top-3">
-        {{ product.offer_badge|default:"Sale" }}
-      </span>
-    {% endif %}
   </a>
-  {% if product.has_variants %}
-    <a class="product-card-quick-add" href="{{ product.get_absolute_url }}" aria-label="Choose options for {{ product.name }}">
-      <svg viewBox="0 0 24 24" class="h-5 w-5 fill-none stroke-current" stroke-width="1.8"><path d="M3 5h2l2 11h10l2-8H6"/><path d="M12 8v6M9 11h6"/></svg>
-    </a>
-  {% else %}
-    <form class="product-card-quick-add-form" method="post" action="{% url 'orders_cart:add' product.pk %}">
-      {% csrf_token %}
-      <input type="hidden" name="quantity" value="1">
-      <button class="product-card-quick-add" aria-label="Add {{ product.name }} to cart" {% if not product.in_stock %}disabled{% endif %}>
-        <svg viewBox="0 0 24 24" class="h-5 w-5 fill-none stroke-current" stroke-width="1.8"><path d="M3 5h2l2 11h10l2-8H6"/><path d="M12 8v6M9 11h6"/></svg>
-      </button>
-    </form>
-  {% endif %}
   </div>
-  <div class="flex flex-1 flex-col p-3 sm:p-4">
-    <p class="text-[10px] font-medium uppercase tracking-[0.12em] text-slate-400">{{ product.category.name }}</p>
-    <h3 class="mt-1 font-semibold leading-snug text-slate-800"><a class="transition hover:text-brand-700" href="{{ product.get_absolute_url }}">{{ product.name }}</a></h3>
-    {% if product.variant_sizes %}
-      <p class="mt-2 text-xs text-slate-500">Sizes: {{ product.variant_sizes|join:", " }}</p>
-    {% endif %}
-    <div class="mt-2">{% include "components/product_price.html" with product=product size="sm" %}</div>
-    {% if not product.in_stock %}<span class="mt-1 text-[11px] font-medium text-red-600">Out of stock</span>{% endif %}
+  <div class="flex flex-1 flex-col gap-1.5 p-2.5 sm:p-4">
+    <h3 class="font-semibold leading-snug text-slate-800"><a class="transition hover:text-brand-700" href="{{ product.get_absolute_url }}">{{ product.name }}</a></h3>
+    <div>{% include "components/product_price.html" with product=product size="sm" %}</div>
   </div>
 </article>

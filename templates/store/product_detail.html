@@ -9,11 +9,13 @@
 </nav>
 <div class="surface-card grid gap-8 rounded-[2rem] p-4 sm:p-6 lg:grid-cols-2 lg:p-8">
   <div>
-    <div class="aspect-square overflow-hidden rounded-3xl bg-gradient-to-br from-sky-50 to-violet-50">
+    <div class="product-detail-image aspect-square overflow-hidden rounded-3xl bg-gradient-to-br from-sky-50 to-violet-50">
       {% if product.cover_image %}
-        <img id="product-main-image" src="{{ product.cover_image.url }}" alt="{{ product.name }}" class="h-full w-full object-contain">
+        <img id="product-main-image" src="{{ product.cover_image.url }}" alt="{{ product.name }}" class="h-full w-full object-contain" onerror="this.classList.add('hidden'); var f=this.nextElementSibling; if(f) f.classList.remove('hidden');">
+        <div class="hidden flex h-full flex-col items-center justify-center text-slate-400"><span class="text-5xl">◇</span><span class="mt-2">Image unavailable</span></div>
       {% elif gallery %}
-        <img id="product-main-image" src="{{ gallery.0.image.url }}" alt="{{ product.name }}" class="h-full w-full object-contain">
+        <img id="product-main-image" src="{{ gallery.0.image.url }}" alt="{{ product.name }}" class="h-full w-full object-contain" onerror="this.classList.add('hidden'); var f=this.nextElementSibling; if(f) f.classList.remove('hidden');">
+        <div class="hidden flex h-full flex-col items-center justify-center text-slate-400"><span class="text-5xl">◇</span><span class="mt-2">Image unavailable</span></div>
       {% else %}
         <div class="flex h-full flex-col items-center justify-center text-slate-400"><span class="text-5xl">◇</span><span class="mt-2">No image</span></div>
       {% endif %}

@@ -8,9 +8,11 @@
     <span class="{% if size == 'lg' %}text-lg{% else %}text-sm{% endif %} font-medium text-slate-400 line-through decoration-slate-400">
       {{ currency }} {{ product.selling_price|intcomma }}
     </span>
-    <span class="rounded-full bg-rose-100 px-2 py-0.5 text-[11px] font-semibold text-rose-700">
-      {{ product.offer_badge|default:"Sale" }}
-    </span>
+    {% if size != "sm" %}
+      <span class="rounded-full bg-rose-100 px-2 py-0.5 text-[11px] font-semibold text-rose-700">
+        {{ product.offer_badge|default:"Sale" }}
+      </span>
+    {% endif %}
   </div>
   {% if size == 'lg' %}
     <p class="mt-2 text-sm text-slate-500">
