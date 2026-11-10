@@ -139,13 +139,15 @@ class ProductVariantTests(TestCase):
         self.assertIn("sizes_confirmed", get_response.context["form"].fields)
         self.assertIn("color", get_response.context["form"].fields)
         self.assertIn("size", get_response.context["variant_formset"].forms[0].fields)
+        self.assertEqual(len(get_response.context["variant_formset"].forms), 1)
         self.assertNotIn("color", get_response.context["variant_formset"].empty_form.fields)
         self.assertNotContains(get_response, 'name="size"')
         self.assertContains(get_response, 'name="color"')
         self.assertContains(get_response, f'name="{prefix}-0-size"')
+        self.assertContains(get_response, 'id="add-variant"')
+        self.assertContains(get_response, "Add size")
+        self.assertContains(get_response, 'name="variants-__prefix__-size"')
         self.assertContains(get_response, "I have added at least one size")
-        self.assertNotContains(get_response, 'id="add-variant"')
-        self.assertNotContains(get_response, "Add another option")
         post_data = {
             "name": "Everyday Tee",
             "selling_price": "1000.00",
@@ -180,12 +182,90 @@ class ProductVariantTests(TestCase):
                 f"variant formset errors: {response.context['variant_formset'].non_form_errors()}"
             )
         parent = Product.objects.get(name="Everyday Tee", variant_parent__isnull=True)
-        small = Product.objects.get(variant_parent=parent, size="S")
+        self.assertEqual(parent.size, "S")
+        self.assertEqual(Product.objects.filter(name="Everyday Tee").count(), 1)
         self.assertEqual(parent.color, "Navy")
-        self.assertEqual(small.color, "")
-        self.assertTrue(small.sku.startswith(parent.sku))
-        self.assertEqual(small.selling_price, parent.selling_price)
-        self.assertFalse(Inventory.objects.filter(product=small).exists())
+        self.assertFalse(Product.objects.filter(variant_parent=parent).exists())
+
+    def test_staff_can_create_multiple_sizes_without_a_size_less_product(self):
+        self.client.force_login(self.staff)
+        response = self.client.post(
+            reverse("products:create"),
+            {
+                "name": "Multi Size Tee",
+                "selling_price": "1000.00",
+                "purchase_price": "500.00",
+                "category": self.category.pk,
+                "vendor": self.vendor.pk,
+                "brand": "",
+                "sizes_confirmed": "on",
+                "color": "Navy",
+                "unit": "pcs",
+                "discount_percent": "0",
+                "min_stock_level": "5",
+                "description": "",
+                "variants-TOTAL_FORMS": "2",
+                "variants-INITIAL_FORMS": "0",
+                "variants-MIN_NUM_FORMS": "0",
+                "variants-MAX_NUM_FORMS": "1000",
+                "variants-0-sku": "",
+                "variants-0-size": "S",
+                "variants-0-is_active": "on",
+                "variants-1-sku": "",
+                "variants-1-size": "M",
+                "variants-1-is_active": "on",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        parent = Product.objects.get(name="Multi Size Tee", variant_parent__isnull=True)
+        self.assertEqual(parent.size, "S")
+        self.assertEqual(
+            list(
+                Product.objects.filter(variant_parent=parent)
+                .order_by("size")
+                .values_list("size", flat=True)
+            ),
+            ["M"],
+        )
+        self.assertEqual(
+            Product.objects.filter(name="Multi Size Tee").count(),
+            2,
+        )
+
+    def test_staff_product_list_groups_size_variants_under_parent(self):
+        parent = Product.objects.create(
+            name="Everyday Tee",
+            sku="TEE-BASE-LIST",
+            selling_price=Decimal("1000.00"),
+            purchase_price=Decimal("500.00"),
+            category=self.category,
+            vendor=self.vendor,
+            color="White",
+        )
+        Product.objects.create(
+            name=parent.name,
+            sku="TEE-M-LIST",
+            selling_price=parent.selling_price,
+            purchase_price=parent.purchase_price,
+            category=parent.category,
+            vendor=parent.vendor,
+            variant_parent=parent,
+            size="M",
+        )
+        self.client.force_login(self.staff)
+
+        response = self.client.get(reverse("products:list"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(list(response.context["products"]), [parent])
+        self.assertContains(response, "M")
+        self.assertContains(response, "White")
+
+        variant_search = self.client.get(
+            reverse("products:list"), {"q": "TEE-M-LIST"}
+        )
+        self.assertEqual(list(variant_search.context["products"]), [parent])
 
     def test_staff_variant_size_field_is_a_fixed_apparel_dropdown(self):
         from django import forms

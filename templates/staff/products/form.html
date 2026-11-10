@@ -8,12 +8,15 @@
 
   {% if variant_formset %}
   <section class="space-y-4 rounded-xl border border-olive-200 bg-olive-50 p-4">
-    <div>
-      <h2 class="font-semibold">Size variants</h2>
-      <p class="mt-1 text-sm text-slate-600">
-        Select each sellable size and optionally enter its SKU. At least one size is required. Choose XS, S, M, L, XL, XXL, or XXXL. Color, price, product details, and photos are shared.
-        Stock for each size is managed separately in Inventory.
-      </p>
+    <div class="flex flex-wrap items-start justify-between gap-3">
+      <div>
+        <h2 class="font-semibold">Size variants</h2>
+        <p class="mt-1 text-sm text-slate-600">
+          Add each sellable size one at a time and optionally enter its SKU. At least one size is required. Choose XS, S, M, L, XL, XXL, or XXXL. Color, price, product details, and photos are shared.
+          Stock for each size is managed separately in Inventory.
+        </p>
+      </div>
+      <button type="button" id="add-variant" class="rounded-lg bg-brand-600 px-3 py-2 text-sm font-medium text-white">Add size</button>
     </div>
     {% if "sizes_confirmed" in form.fields %}
       <div>
@@ -27,7 +30,7 @@
     {% endif %}
     {{ variant_formset.management_form }}
     {{ variant_formset.non_form_errors }}
-    <div id="variant-forms" class="space-y-3">
+    <div id="variant-forms" class="space-y-3" data-prefix="{{ variant_formset.prefix }}">
       {% for variant_form in variant_formset %}
         <div class="grid gap-3 rounded-lg border bg-white p-3 sm:grid-cols-2" data-variant-row>
           {% for hidden in variant_form.hidden_fields %}{{ hidden }}{% endfor %}
@@ -50,6 +53,22 @@
         </div>
       {% endfor %}
     </div>
+    <template id="variant-empty-form">
+      <div class="grid gap-3 rounded-lg border bg-white p-3 sm:grid-cols-2" data-variant-row>
+        {% for hidden in variant_formset.empty_form.hidden_fields %}{{ hidden }}{% endfor %}
+        {% for field in variant_formset.empty_form.visible_fields %}
+          {% if field.name == "DELETE" %}
+            <div class="hidden">{{ field }}</div>
+            <button type="button" class="justify-self-start rounded-lg border border-red-200 px-2.5 py-1.5 text-xs font-semibold text-red-600" data-remove-variant>Remove size</button>
+          {% else %}
+            <div>
+              <label class="text-sm font-medium" for="{{ field.id_for_label }}">{{ field.label }}</label>
+              {{ field }}
+            </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </template>
   </section>
   {% elif object.variant_parent %}
     <p class="rounded-xl bg-sage-100 p-4 text-sm text-slate-600">
@@ -117,4 +136,29 @@
 
   <button class="rounded-lg bg-brand-600 px-4 py-2 text-white">Save product</button>
 </form>
+{% if variant_formset %}
+<script>
+  (function () {
+    const container = document.getElementById("variant-forms");
+    const totalForms = document.getElementById(`id_${container.dataset.prefix}-TOTAL_FORMS`);
+    const emptyForm = document.getElementById("variant-empty-form");
+    const addButton = document.getElementById("add-variant");
+
+    addButton.addEventListener("click", function () {
+      const index = Number.parseInt(totalForms.value, 10);
+      const row = emptyForm.innerHTML.replace(/__prefix__/g, String(index));
+      container.insertAdjacentHTML("beforeend", row);
+      totalForms.value = String(index + 1);
+    });
+
+    container.addEventListener("click", function (event) {
+      const button = event.target.closest("[data-remove-variant]");
+      if (!button) return;
+      const row = button.closest("[data-variant-row]");
+      row.querySelector('input[name$="-DELETE"]').checked = true;
+      row.classList.add("hidden");
+    });
+  })();
+</script>
+{% endif %}
 {% endblock %}

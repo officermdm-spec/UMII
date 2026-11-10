@@ -32,19 +32,25 @@ class ProductListView(ModulePermissionMixin, ListView):
     paginate_by = 20
 
     def get_queryset(self):
-        qs = Product.objects.select_related("category", "vendor", "brand")
+        qs = Product.objects.filter(variant_parent__isnull=True).select_related(
+            "category", "vendor", "brand"
+        ).prefetch_related("variants")
         q = self.request.GET.get("q")
         category = self.request.GET.get("category")
         vendor = self.request.GET.get("vendor")
         if q:
             qs = qs.filter(
-                Q(name__icontains=q) | Q(sku__icontains=q) | Q(barcode__icontains=q)
+                Q(name__icontains=q)
+                | Q(sku__icontains=q)
+                | Q(barcode__icontains=q)
+                | Q(variants__sku__icontains=q)
+                | Q(variants__barcode__icontains=q)
             )
         if category:
             qs = qs.filter(Q(category_id=category) | Q(category__parent_id=category))
         if vendor:
             qs = qs.filter(vendor_id=vendor)
-        return qs
+        return qs.distinct()
 
 
 class ProductCreateView(ModulePermissionMixin, CreateView):
@@ -72,10 +78,23 @@ class ProductCreateView(ModulePermissionMixin, CreateView):
         )
         if not self._variant_formset.is_valid():
             return self.form_invalid(form)
+        size_forms = [
+            variant_form
+            for variant_form in self._variant_formset.forms
+            if hasattr(variant_form, "cleaned_data")
+            and not variant_form.cleaned_data.get("DELETE")
+            and variant_form.cleaned_data.get("size")
+        ]
+        first_size_form = size_forms[0]
+        form.instance.size = first_size_form.cleaned_data["size"]
+        form.instance.is_active = first_size_form.cleaned_data["is_active"]
+        if first_size_form.cleaned_data.get("sku"):
+            form.instance.sku = first_size_form.cleaned_data["sku"]
         self.object = form.save()
         _save_product_images(self.request, self.object)
-        self._variant_formset.instance = self.object
-        self._variant_formset.save()
+        for variant_form in size_forms[1:]:
+            variant_form.instance.variant_parent = self.object
+            variant_form.save()
         _sync_product_variants(self.object)
         messages.success(self.request, "Product created.")
         return redirect(self.get_success_url())
@@ -105,6 +124,8 @@ class ProductUpdateView(ModulePermissionMixin, UpdateView):
     @transaction.atomic
     def form_valid(self, form):
         variant_formset = self.get_variant_formset()
+        if variant_formset and "size" in form.cleaned_data:
+            variant_formset.instance.size = form.cleaned_data["size"]
         if variant_formset and not variant_formset.is_valid():
             return self.form_invalid(form)
         self.object = form.save()

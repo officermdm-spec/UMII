@@ -16,6 +16,7 @@ def promotable_products():
         .annotate(
             on_hand=Sum(F("inventories__current_stock") - F("inventories__reserved_stock"))
         )
+        .filter(on_hand__gt=0)
         .distinct()
         .order_by("name")
     )

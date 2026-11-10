@@ -48,15 +48,25 @@ class ProductForm(TailwindFormMixin, forms.ModelForm):
             )
         else:
             self.fields.pop("sizes_confirmed")
-        if not self.instance.variant_parent_id:
+        if not self.instance.variant_parent_id and not self.instance.size:
             self.fields.pop("size")
         else:
-            self.fields.pop("color")
+            if self.instance.variant_parent_id:
+                self.fields.pop("color")
 
     def clean_size(self):
         size = (self.cleaned_data.get("size") or "").strip()
         if self.instance.variant_parent_id and not size:
             raise forms.ValidationError("Enter a size for this product variant.")
+        if (
+            self.instance.pk
+            and self.instance.size
+            and self.instance.variants.exists()
+            and not size
+        ):
+            raise forms.ValidationError(
+                "Keep a size on this product while it has other size options."
+            )
         return size
 
 
@@ -141,6 +151,8 @@ class BaseProductVariantFormSet(forms.BaseInlineFormSet):
         super().clean()
         seen = set()
         parent = self.instance
+        if parent.pk and parent.size:
+            seen.add(parent.size.strip().casefold())
         if (
             parent.pk
             and not parent.size
@@ -177,7 +189,7 @@ ProductVariantFormSet = inlineformset_factory(
     fk_name="variant_parent",
     form=ProductVariantForm,
     formset=BaseProductVariantFormSet,
-    extra=len(ProductVariantForm.SIZE_CHOICES),
+    extra=1,
     can_delete=True,
 )
 

@@ -291,7 +291,7 @@ input[type="checkbox"] { margin-right: 0.35rem; }
 .category-banner {
   position: relative;
   overflow: hidden;
-  min-height: 13rem;
+  min-height: 20rem;
   border-radius: 1.4rem;
   background: linear-gradient(120deg, #7f685d, #55633f);
   box-shadow: 0 20px 46px -34px rgba(92, 64, 52, 0.5);
@@ -311,8 +311,8 @@ input[type="checkbox"] { margin-right: 0.35rem; }
   height: 100%;
   width: 100%;
 }
-.category-banner-image { object-fit: cover; transition: transform 500ms ease; }
-.category-banner-link:hover .category-banner-image { transform: scale(1.035); }
+.category-banner-image { object-fit: contain; object-position: center; transition: transform 500ms ease; }
+.category-banner-link:hover .category-banner-image { transform: scale(1.02); }
 .category-banner-placeholder {
   display: flex;
   align-items: center;
@@ -360,12 +360,19 @@ input[type="checkbox"] { margin-right: 0.35rem; }
 .store-category-tile-placeholder {
   display: block;
   width: 100%;
-  aspect-ratio: 0.86;
+  aspect-ratio: 0.75;
   overflow: hidden;
   border-radius: 0.9rem;
   background: linear-gradient(135deg, #eee5dc, #DAD7C6);
-  object-fit: cover;
+  object-fit: contain;
   transition: transform 250ms ease, box-shadow 250ms ease;
+}
+.category-page-image {
+  display: block;
+  flex: none;
+  background: #f4f1e8;
+  object-fit: contain;
+  object-position: center;
 }
 .store-category-tile-placeholder {
   display: grid;
@@ -485,7 +492,7 @@ input[type="checkbox"] { margin-right: 0.35rem; }
 .cart-item > a img,
 .product-detail-image > img {
   display: block;
-  object-fit: contain;
+  object-fit: cover;
   object-position: center;
 }
 .cart-item-name { overflow-wrap: anywhere; }

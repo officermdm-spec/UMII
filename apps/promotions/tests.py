@@ -338,6 +338,85 @@ class ProductOfferTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Summer Sale")
 
+    def test_staff_can_select_products_from_offer_dropdown(self):
+        User = get_user_model()
+        sold_out_product = Product.objects.create(
+            name="Sold out phone",
+            sku="ELE-OUT",
+            selling_price=Decimal("800.00"),
+            purchase_price=Decimal("300.00"),
+            category=self.category,
+            vendor=self.vendor,
+        )
+        Inventory.objects.create(
+            product=sold_out_product,
+            warehouse=self.warehouse,
+            current_stock=3,
+            reserved_stock=3,
+        )
+        staff = User.objects.create_user(
+            username="offer-create-staff",
+            password="test-password",
+            user_type=User.UserType.STAFF,
+            allowed_modules=[MODULES.PROMOTIONS],
+            is_staff=True,
+        )
+        self.client.force_login(staff)
+
+        page = self.client.get(reverse("promotions:offer_create"))
+        self.assertEqual(page.status_code, 200)
+        self.assertContains(page, 'id="offer-products-dropdown"')
+        self.assertContains(page, 'name="products"')
+        self.assertContains(page, f'value="{self.product.pk}"')
+        self.assertNotContains(page, f'value="{sold_out_product.pk}"')
+
+        response = self.client.post(
+            reverse("promotions:offer_create"),
+            {
+                "name": "Selected phone offer",
+                "offer_type": ProductOffer.OfferType.PERCENTAGE,
+                "value": "15.00",
+                "buy_qty": "0",
+                "get_qty": "0",
+                "products": [str(self.product.pk)],
+                "start_date": (timezone.now() - timedelta(hours=1)).strftime(
+                    "%Y-%m-%dT%H:%M"
+                ),
+                "end_date": (timezone.now() + timedelta(days=1)).strftime(
+                    "%Y-%m-%dT%H:%M"
+                ),
+                "is_active": "on",
+                "show_on_website": "on",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        offer = ProductOffer.objects.get(name="Selected phone offer")
+        self.assertEqual(list(offer.products.all()), [self.product])
+
+        response = self.client.post(
+            reverse("promotions:offer_create"),
+            {
+                "name": "Sold out phone offer",
+                "offer_type": ProductOffer.OfferType.PERCENTAGE,
+                "value": "15.00",
+                "buy_qty": "0",
+                "get_qty": "0",
+                "products": [str(sold_out_product.pk)],
+                "start_date": (timezone.now() - timedelta(hours=1)).strftime(
+                    "%Y-%m-%dT%H:%M"
+                ),
+                "end_date": (timezone.now() + timedelta(days=1)).strftime(
+                    "%Y-%m-%dT%H:%M"
+                ),
+                "is_active": "on",
+                "show_on_website": "on",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(ProductOffer.objects.filter(name="Sold out phone offer").exists())
+
     def test_edit_offer_preselects_its_products_without_javascript(self):
         User = get_user_model()
         available_product = Product.objects.create(

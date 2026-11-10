@@ -40,18 +40,25 @@
     <p class="text-sm font-medium">{{ form.products.label }}</p>
     {% if form.products.help_text %}<p class="mt-1 text-xs text-slate-500">{{ form.products.help_text }}</p>{% endif %}
     {% if form.products.field.queryset.exists %}
-      <div class="mt-2 max-h-80 space-y-2 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm">
-        {{ form.products }}
-      </div>
+      <details id="offer-products-dropdown" class="group relative mt-2">
+        <summary class="flex cursor-pointer list-none items-center justify-between rounded-lg border border-sky-200 bg-white px-3 py-2 text-sm shadow-sm hover:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/25">
+          <span><span id="offer-products-selected">0</span> products selected</span>
+          <span class="mr-1 h-2 w-2 rotate-45 border-b border-r border-slate-500 transition-transform group-open:rotate-180" aria-hidden="true"></span>
+        </summary>
+        <div class="absolute z-20 mt-1 max-h-80 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white p-3 text-sm shadow-lg">
+          {{ form.products }}
+        </div>
+      </details>
+      {{ form.products.errors }}
       {% if object %}
         {% with product_count=object.products.count %}
           <p class="mt-2 text-xs text-slate-500">{{ product_count }} product{{ product_count|pluralize }} currently on this offer; selected products are checked above.</p>
         {% endwith %}
       {% endif %}
     {% else %}
-      <p class="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-500">No active products available yet. Add a product first, then come back.</p>
+      <p class="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-500">No in-stock products available yet. Add stock to a product first, then come back.</p>
+      {{ form.products.errors }}
     {% endif %}
-    {{ form.products.errors }}
   </div>
   <div class="space-y-1">
     <label class="text-sm font-medium" for="{{ form.image.id_for_label }}">{{ form.image.label }}</label>
@@ -81,4 +88,27 @@
     {% endif %}
   </div>
 </form>
+{% if form.products.field.queryset.exists %}
+<script>
+  (function () {
+    const dropdown = document.getElementById("offer-products-dropdown");
+    const count = document.getElementById("offer-products-selected");
+    const choices = dropdown.querySelectorAll('input[type="checkbox"]');
+
+    function updateSelectedCount() {
+      count.textContent = String(
+        dropdown.querySelectorAll('input[type="checkbox"]:checked').length
+      );
+    }
+
+    choices.forEach(function (choice) {
+      choice.addEventListener("change", updateSelectedCount);
+    });
+    updateSelectedCount();
+    document.addEventListener("click", function (event) {
+      if (!dropdown.contains(event.target)) dropdown.open = false;
+    });
+  })();
+</script>
+{% endif %}
 {% endblock %}
