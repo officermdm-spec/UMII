@@ -5,7 +5,8 @@
 <form method="post" class="space-y-4">
   {% csrf_token %}
   {{ form.non_field_errors }}
-  {% for field in form %}
+  {% for field in form.hidden_fields %}{{ field }}{% endfor %}
+  {% for field in form.visible_fields %}
     <div>
       <label class="text-sm font-medium">{{ field.label }}</label>
       {{ field }}

@@ -1,4 +1,5 @@
 import os
+from hashlib import sha256
 
 from django.conf import settings
 from django.contrib import messages
@@ -11,8 +12,9 @@ from django.contrib.auth.views import (
     PasswordResetDoneView,
     PasswordResetView,
 )
+from django.core.cache import cache
 from django.db.models import Q
-from django.http import HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, DeleteView, ListView, TemplateView, UpdateView
@@ -36,10 +38,30 @@ from apps.returns.models import ReturnRequest
 from apps.reviews.models import Feedback, Review
 
 
+REGISTRATION_RATE_LIMIT = 5
+REGISTRATION_RATE_WINDOW_SECONDS = 60
+
+
 class CustomerRegisterView(CreateView):
     form_class = CustomerRegistrationForm
     template_name = "accounts/register.html"
     success_url = reverse_lazy("customers:dashboard")
+
+    def post(self, request, *args, **kwargs):
+        ip_address = request.META.get("REMOTE_ADDR", "")
+        ip_digest = sha256(ip_address.encode("utf-8")).hexdigest()
+        cache_key = f"customer-registration:{ip_digest}"
+        if cache.add(cache_key, 1, timeout=REGISTRATION_RATE_WINDOW_SECONDS):
+            attempts = 1
+        else:
+            attempts = cache.incr(cache_key)
+
+        if attempts > REGISTRATION_RATE_LIMIT:
+            return HttpResponse(
+                "Too many registration attempts. Please try again in a minute.",
+                status=429,
+            )
+        return super().post(request, *args, **kwargs)
 
     def form_valid(self, form):
         response = super().form_valid(form)

@@ -1,4 +1,5 @@
 import logging
+import re
 import threading
 from smtplib import SMTPException
 
@@ -12,12 +13,33 @@ from config.forms import TailwindFormMixin
 
 logger = logging.getLogger(__name__)
 
+DISPOSABLE_EMAIL_DOMAINS = frozenset(
+    {
+        "10minutemail.com",
+        "getnada.com",
+        "guerrillamail.com",
+        "mailinator.com",
+        "merepost.com",
+        "temp-mail.org",
+        "throwawaymail.com",
+        "yopmail.com",
+    }
+)
+SPAM_URL_PATTERN = re.compile(r"(?:https?://|www\.)", re.IGNORECASE)
+
 
 class CustomerRegistrationForm(TailwindFormMixin, UserCreationForm):
     first_name = forms.CharField(max_length=150)
     last_name = forms.CharField(max_length=150)
     email = forms.EmailField()
     phone = forms.CharField(max_length=20)
+    website = forms.CharField(
+        required=False,
+        label="Website",
+        widget=forms.HiddenInput(
+            attrs={"autocomplete": "off", "tabindex": "-1", "aria-hidden": "true"}
+        ),
+    )
 
     class Meta:
         model = User
@@ -25,9 +47,26 @@ class CustomerRegistrationForm(TailwindFormMixin, UserCreationForm):
 
     def clean_email(self):
         email = self.cleaned_data["email"].lower()
+        domain = email.rsplit("@", 1)[1]
+        if any(
+            domain == disposable_domain or domain.endswith(f".{disposable_domain}")
+            for disposable_domain in DISPOSABLE_EMAIL_DOMAINS
+        ):
+            raise forms.ValidationError("Please use a non-temporary email address.")
         if User.objects.filter(email__iexact=email).exists():
             raise forms.ValidationError("An account with this email already exists.")
         return email
+
+    def clean(self):
+        cleaned_data = super().clean()
+        if cleaned_data.get("website"):
+            raise forms.ValidationError("Unable to process registration.")
+
+        for field_name in ("first_name", "last_name", "email", "phone", "username"):
+            value = cleaned_data.get(field_name)
+            if isinstance(value, str) and SPAM_URL_PATTERN.search(value):
+                self.add_error(field_name, "URLs are not allowed in this field.")
+        return cleaned_data
 
     def save(self, commit=True):
         user = super().save(commit=False)

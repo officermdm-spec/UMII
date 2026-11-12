@@ -1,12 +1,14 @@
 from django.contrib.auth import get_user_model
 from django.contrib.auth.tokens import default_token_generator
 from django.core import mail
+from django.core.cache import cache
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 
 from apps.accounts.tests import build_catalog
+from apps.customers.forms import CustomerRegistrationForm
 from apps.customers.models import Address
 
 User = get_user_model()
@@ -33,6 +35,75 @@ class CustomerPrivacyTests(TestCase):
         self.client.login(username="a", password="pass12345")
         response = self.client.get(reverse("customers:address_update", args=[self.address.pk]))
         self.assertEqual(response.status_code, 404)
+
+
+class CustomerRegistrationBotProtectionTests(TestCase):
+    def setUp(self):
+        cache.clear()
+        self.registration_data = {
+            "first_name": "New",
+            "last_name": "Customer",
+            "email": "new-customer@example.com",
+            "phone": "03001234567",
+            "username": "new-customer",
+            "password1": "StrongPass!234",
+            "password2": "StrongPass!234",
+        }
+        self.registration_url = reverse("customers:register")
+
+    def test_honeypot_is_hidden_and_rejects_filled_submission(self):
+        form = CustomerRegistrationForm()
+        self.assertTrue(form.fields["website"].widget.is_hidden)
+
+        response = self.client.post(
+            self.registration_url,
+            {**self.registration_data, "website": "https://spam.example"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(User.objects.filter(username="new-customer").exists())
+
+    def test_rejects_disposable_email_domain(self):
+        response = self.client.post(
+            self.registration_url,
+            {**self.registration_data, "email": "new@merepost.com"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "non-temporary email address")
+        self.assertFalse(User.objects.filter(username="new-customer").exists())
+
+    def test_rejects_urls_in_registration_inputs(self):
+        response = self.client.post(
+            self.registration_url,
+            {**self.registration_data, "first_name": "Visit https://spam.example"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "URLs are not allowed")
+        self.assertFalse(User.objects.filter(username="new-customer").exists())
+
+    def test_valid_registration_still_works(self):
+        response = self.client.post(self.registration_url, self.registration_data)
+
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(User.objects.filter(username="new-customer").exists())
+
+    def test_registration_posts_are_rate_limited_per_ip(self):
+        for _ in range(5):
+            response = self.client.post(self.registration_url, {}, REMOTE_ADDR="192.0.2.10")
+            self.assertEqual(response.status_code, 200)
+
+        limited_response = self.client.post(
+            self.registration_url, {}, REMOTE_ADDR="192.0.2.10"
+        )
+        other_ip_response = self.client.post(
+            self.registration_url, {}, REMOTE_ADDR="192.0.2.11"
+        )
+
+        self.assertEqual(limited_response.status_code, 429)
+        self.assertContains(limited_response, "Too many registration attempts", status_code=429)
+        self.assertEqual(other_ip_response.status_code, 200)
 
 
 @override_settings(
